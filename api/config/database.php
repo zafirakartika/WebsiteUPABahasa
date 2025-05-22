@@ -5,6 +5,10 @@ define('DB_NAME', 'db_upabahasa');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
+// Error reporting for debugging (remove in production)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Create PDO connection
 try {
     $pdo = new PDO(
@@ -18,11 +22,15 @@ try {
         ]
     );
 } catch(PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+    // Log error instead of displaying it
+    error_log("Database connection failed: " . $e->getMessage());
+    die("Database connection failed. Please check your configuration.");
 }
 
 // Session configuration
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Helper functions
 function isLoggedIn() {
@@ -31,15 +39,15 @@ function isLoggedIn() {
 
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: login.php');
+        header('Location: ../login.php');
         exit;
     }
 }
 
 function requireRole($role) {
     requireLogin();
-    if ($_SESSION['user_role'] !== $role) {
-        header('Location: index.php');
+    if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== $role) {
+        header('Location: ../index.php');
         exit;
     }
 }
@@ -48,16 +56,23 @@ function getCurrentUser() {
     global $pdo;
     if (!isLoggedIn()) return null;
     
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    return $stmt->fetch();
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        return $stmt->fetch();
+    } catch(PDOException $e) {
+        error_log("Error fetching current user: " . $e->getMessage());
+        return null;
+    }
 }
 
 function formatDate($date) {
+    if (!$date) return 'N/A';
     return date('d F Y', strtotime($date));
 }
 
 function formatDateTime($datetime) {
+    if (!$datetime) return 'N/A';
     return date('d F Y H:i', strtotime($datetime));
 }
 
@@ -92,7 +107,7 @@ function displayAlert() {
         }
         
         echo '<div class="alert ' . $alertClass . ' alert-dismissible fade show" role="alert">';
-        echo $alert['message'];
+        echo htmlspecialchars($alert['message']);
         echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
         echo '</div>';
         

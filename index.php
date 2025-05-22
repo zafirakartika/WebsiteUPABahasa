@@ -21,7 +21,7 @@ if (isLoggedIn()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .hero-section {
-            background: linear-gradient(rgba(13, 110, 253, 0.8), rgba(13, 110, 253, 0.8)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?ixlib=rb-4.0.3') center/cover;
+            background: linear-gradient(rgba(13, 110, 253, 0.8), rgba(13, 110, 253, 0.8)), url('https://upabahasa.upnvj.ac.id/wp-content/uploads/2023/11/WhatsApp-Image-2023-10-19-at-10.29.39-1.jpeg') center/cover;
             color: white;
             min-height: 70vh;
         }
