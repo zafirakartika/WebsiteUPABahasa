@@ -40,17 +40,9 @@ Sistem manajemen berbasis web untuk Unit Pelayanan Akademik Bahasa Universitas P
 
 ## 📁 Struktur Proyek
 upa-bahasa/
-├── assets/
-│   ├── css/
-│   │   ├── bootstrap.min.css
-│   │   └── custom.css
-│   ├── js/
-│   │   ├── bootstrap.min.js
-│   │   ├── jquery.min.js
-│   │   ├── chart.min.js
-│   │   └── app.js
-│   └── images/
 ├── api/
+│   ├── config/
+│   │   └── database.php
 │   ├── auth/
 │   │   └── login.php
 │   ├── elpt/
@@ -58,9 +50,10 @@ upa-bahasa/
 │   │   ├── available-dates.php
 │   │   └── download-certificate.php
 │   ├── admin/
-│   │   └── stats.php
-│   └── config/
-│       └── database.php
+│   │   ├── stats.php
+│   │   └── update-registration.php
+│   └── upload/
+│       └── handler.php
 ├── admin/
 │   ├── dashboard.php
 │   ├── registrations.php
@@ -72,6 +65,16 @@ upa-bahasa/
 │   ├── elpt-registration.php
 │   ├── test-results.php
 │   └── course.php
+├── assets/
+│   ├── css/
+│   │   ├── bootstrap.min.css
+│   │   └── custom.css
+│   ├── js/
+│   │   ├── bootstrap.min.js
+│   │   ├── jquery.min.js
+│   │   ├── chart.min.js
+│   │   └── app.js
+│   └── images/
 ├── includes/
 │   ├── header.php
 │   ├── footer.php
@@ -80,10 +83,14 @@ upa-bahasa/
 │   ├── certificates/
 │   ├── payment-proofs/
 │   └── profile-pictures/
+├── config/
+│   └── database.php
 ├── index.php
 ├── login.php
 ├── register.php
 ├── logout.php
+├── error.php
+├── download-certificate.php
 ├── .htaccess
 ├── database_schema.sql
 └── README.md

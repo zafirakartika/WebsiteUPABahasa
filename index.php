@@ -1,5 +1,5 @@
 <?php
-require_once 'api/config/database.php';
+require_once 'config/database.php';
 
 // Redirect if already logged in
 if (isLoggedIn()) {

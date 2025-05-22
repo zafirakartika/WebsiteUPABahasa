@@ -1,6 +1,6 @@
 <?php
 // admin/registrations.php
-require_once '../api/config/database.php';
+require_once '../config/database.php';
 requireRole('admin');
 
 // Get all registrations with filters

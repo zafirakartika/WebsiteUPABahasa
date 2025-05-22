@@ -1,114 +1,82 @@
 # .htaccess for UPA Bahasa UPNVJ
-# Security and URL rewriting configuration
+# Place this file in the root of your project (upa-bahasa/.htaccess)
 
 # Enable mod_rewrite
-RewriteEngine On
-
-# Security Headers
-<IfModule mod_headers.c>
-    # Prevent clickjacking
-    Header always append X-Frame-Options SAMEORIGIN
-    
-    # Prevent MIME type sniffing
-    Header always set X-Content-Type-Options nosniff
-    
-    # Enable XSS protection
-    Header always set X-XSS-Protection "1; mode=block"
-    
-    # Referrer policy
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    
-    # Content Security Policy (adjust as needed)
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://code.jquery.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self';"
-    
-    # HSTS (uncomment for HTTPS)
-    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-</IfModule>
-
-# Hide sensitive files
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|conf|bak)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
-
-# Hide .env files
-<Files ".env*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-# Hide composer files
-<Files "composer.*">
-    Order Allow,Deny
-    Deny from all
-</Files>
-
-# Hide version control directories
-RedirectMatch 404 /\.git
-RedirectMatch 404 /\.svn
-
-# Prevent access to includes directory directly
-<IfModule mod_rewrite.c>
-    RewriteRule ^includes/ - [F,L]
-    RewriteRule ^api/config/ - [F,L]
-</IfModule>
-
-# Custom error pages
-ErrorDocument 400 /error.php?error=400
-ErrorDocument 401 /error.php?error=401
-ErrorDocument 403 /error.php?error=403
-ErrorDocument 404 /error.php?error=404
-ErrorDocument 500 /error.php?error=500
-
-# URL Rewriting Rules
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Remove trailing slashes (optional)
+    # Set the base directory - adjust this based on your setup
+    # If in subfolder: RewriteBase /upa-bahasa/
+    # If in root: RewriteBase /
+    RewriteBase /upa-bahasa/
+    
+    # Redirect to HTTPS (uncomment when using HTTPS)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Remove trailing slashes except for directories
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [R=301,L]
     
-    # API routes
+    # Prevent access to sensitive files
+    RewriteRule ^(config|includes|uploads/private)/.*$ - [F,L]
+    RewriteRule \.(env|ini|log|sh|sql|bak)$ - [F,L]
+    
+    # Handle API routes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/([^/]+)/([^/]+)/?$ api/$1/$2.php [L,QSA]
-    RewriteRule ^api/([^/]+)/?$ api/$1/index.php [L,QSA]
     
-    # Admin routes
-    RewriteRule ^admin/?$ admin/dashboard.php [L,QSA]
-    RewriteRule ^admin/([^/]+)/?$ admin/$1.php [L,QSA]
+    # Handle clean URLs for main pages
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^login/?$ login.php [L]
+    RewriteRule ^register/?$ register.php [L]
+    RewriteRule ^logout/?$ logout.php [L]
     
-    # Student routes  
-    RewriteRule ^student/?$ student/dashboard.php [L,QSA]
-    RewriteRule ^student/([^/]+)/?$ student/$1.php [L,QSA]
+    # Handle admin routes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^admin/?$ admin/dashboard.php [L]
     
-    # Public pages
-    RewriteRule ^login/?$ login.php [L,QSA]
-    RewriteRule ^register/?$ register.php [L,QSA]
-    RewriteRule ^logout/?$ logout.php [L,QSA]
-    
-    # Certificate downloads (with authentication)
-    RewriteRule ^certificate/([0-9]+)/?$ download-certificate.php?id=$1 [L,QSA]
-    
-    # Uploads with access control
-    RewriteRule ^uploads/private/(.*)$ upload-handler.php?file=$1 [L,QSA]
+    # Handle student routes
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^student/?$ student/dashboard.php [L]
 </IfModule>
 
-# File type restrictions
-<FilesMatch "\.(php|phtml|php3|php4|php5|pl|py|jsp|asp|sh|cgi)$">
-    <IfModule mod_dir.c>
-        DirectoryIndex disabled
-    </IfModule>
+# Security Headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Prevent directory browsing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|conf|bak|env)$">
+    Order Allow,Deny
+    Deny from all
 </FilesMatch>
 
-# Prevent execution of scripts in uploads directory
-<Directory "uploads/">
-    <FilesMatch "\.(php|phtml|php3|php4|php5|pl|py|jsp|asp|sh|cgi)$">
-        Order Allow,Deny
-        Deny from all
-    </FilesMatch>
-</Directory>
+# Set default charset
+AddDefaultCharset UTF-8
 
-# Compression for better performance
+# PHP Settings (adjust as needed)
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log logs/php_errors.log
+</IfModule>
+
+# Enable compression
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/plain
     AddOutputFilterByType DEFLATE text/html
@@ -122,136 +90,14 @@ ErrorDocument 500 /error.php?error=500
     AddOutputFilterByType DEFLATE application/json
 </IfModule>
 
-# Browser caching
+# Cache control
 <IfModule mod_expires.c>
     ExpiresActive On
-    
-    # Images
     ExpiresByType image/jpg "access plus 1 month"
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/gif "access plus 1 month"
     ExpiresByType image/png "access plus 1 month"
-    ExpiresByType image/svg+xml "access plus 1 month"
-    ExpiresByType image/webp "access plus 1 month"
-    
-    # CSS and JavaScript
-    ExpiresByType text/css "access plus 1 month"
-    ExpiresByType application/javascript "access plus 1 month"
-    ExpiresByType application/x-javascript "access plus 1 month"
-    
-    # Fonts
-    ExpiresByType font/woff "access plus 1 year"
-    ExpiresByType font/woff2 "access plus 1 year"
-    ExpiresByType application/font-woff "access plus 1 year"
-    ExpiresByType application/font-woff2 "access plus 1 year"
-    
-    # Documents
-    ExpiresByType application/pdf "access plus 1 month"
-    
-    # HTML
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
     ExpiresByType text/html "access plus 0 seconds"
 </IfModule>
-
-# Cache-Control headers
-<IfModule mod_headers.c>
-    # CSS and JS files
-    <FilesMatch "\.(css|js)$">
-        Header set Cache-Control "public, max-age=2592000"
-    </FilesMatch>
-    
-    # Image files
-    <FilesMatch "\.(jpg|jpeg|png|gif|svg|webp)$">
-        Header set Cache-Control "public, max-age=2592000"
-    </FilesMatch>
-    
-    # Font files
-    <FilesMatch "\.(woff|woff2|ttf|eot)$">
-        Header set Cache-Control "public, max-age=31536000"
-    </FilesMatch>
-    
-    # HTML files
-    <FilesMatch "\.html$">
-        Header set Cache-Control "no-cache, no-store, must-revalidate"
-        Header set Pragma "no-cache"
-        Header set Expires 0
-    </FilesMatch>
-    
-    # PHP files
-    <FilesMatch "\.php$">
-        Header set Cache-Control "no-cache, no-store, must-revalidate"
-        Header set Pragma "no-cache"
-        Header set Expires 0
-    </FilesMatch>
-</IfModule>
-
-# Prevent hotlinking
-<IfModule mod_rewrite.c>
-    RewriteCond %{HTTP_REFERER} !^$
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?yourdomain\.com [NC]
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?upnvj\.ac\.id [NC]
-    RewriteRule \.(jpg|jpeg|png|gif|svg|css|js)$ - [F,L]
-</IfModule>
-
-# Limit file upload size (adjust as needed)
-php_value upload_max_filesize 10M
-php_value post_max_size 10M
-php_value max_execution_time 300
-php_value max_input_time 300
-
-# Session security
-php_value session.cookie_httponly 1
-php_value session.cookie_secure 0
-php_value session.use_strict_mode 1
-php_value session.cookie_samesite Lax
-
-# Hide PHP version
-<IfModule mod_headers.c>
-    Header unset X-Powered-By
-    Header unset Server
-</IfModule>
-
-# Rate limiting (basic)
-<IfModule mod_rewrite.c>
-    # Block suspicious requests
-    RewriteCond %{QUERY_STRING} (union|select|insert|cast|set|declare|drop|update|md5|benchmark|script|javascript|vbscript|onload|onerror) [NC]
-    RewriteRule .* - [F,L]
-    
-    # Block common exploit attempts
-    RewriteCond %{QUERY_STRING} (\.\./|boot\.ini|etc/passwd|self/environ) [NC]
-    RewriteRule .* - [F,L]
-    
-    # Block SQL injection attempts
-    RewriteCond %{QUERY_STRING} (;|<|>|'|"|\)|%0A|%0D|%22|%27|%3C|%3E|%00) [NC]
-    RewriteRule .* - [F,L]
-</IfModule>
-
-# Maintenance mode (uncomment to enable)
-# <IfModule mod_rewrite.c>
-#     RewriteCond %{REQUEST_URI} !/maintenance.html$
-#     RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|gif|ico)$
-#     RewriteRule ^(.*)$ /maintenance.html [R=503,L]
-# </IfModule>
-
-# Force HTTPS (uncomment when SSL is configured)
-# <IfModule mod_rewrite.c>
-#     RewriteCond %{HTTPS} off
-#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-# </IfModule>
-
-# MIME types
-<IfModule mod_mime.c>
-    AddType application/javascript .js
-    AddType text/css .css
-    AddType image/svg+xml .svg
-    AddType application/font-woff .woff
-    AddType application/font-woff2 .woff2
-</IfModule>
-
-# Enable FollowSymLinks
-Options +FollowSymLinks
-
-# Disable directory browsing
-Options -Indexes
-
-# Default charset
-AddDefaultCharset UTF-8

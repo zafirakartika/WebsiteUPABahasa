@@ -1,409 +1,185 @@
 <?php
-require_once 'api/config/database.php';
+// api/elpt/register.php - API endpoint for ELPT registration
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Content-Type: application/json');
 
-// Redirect if already logged in
-if (isLoggedIn()) {
-    if ($_SESSION['user_role'] === 'admin') {
-        header('Location: admin/dashboard.php');
-    } else {
-        header('Location: student/dashboard.php');
-    }
+require_once '../../config/database.php';
+
+// Check if user is logged in
+if (!isLoggedIn()) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized. Please login first.']);
     exit;
 }
 
-$errors = [];
-$success = '';
+// Only students can register for ELPT
+if ($_SESSION['user_role'] !== 'student') {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'Only students can register for ELPT.']);
+    exit;
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $role = $_POST['role'] ?? 'student';
-    $nim = trim($_POST['nim'] ?? '');
-    $no_telpon = trim($_POST['no_telpon'] ?? '');
-    $program_studi = trim($_POST['program_studi'] ?? '');
-    $jenjang = $_POST['jenjang'] ?? '';
-    $fakultas = trim($_POST['fakultas'] ?? '');
-    $admin_code = $_POST['admin_code'] ?? '';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'message' => 'Method not allowed']);
+    exit;
+}
+
+// Get POST data
+$input = json_decode(file_get_contents('php://input'), true);
+if (!$input) {
+    $input = $_POST;
+}
+
+$test_date = $input['test_date'] ?? '';
+$keperluan = $input['keperluan'] ?? '';
+$time_slot = $input['time_slot'] ?? '';
+
+// Validation
+$errors = [];
+
+if (empty($test_date)) {
+    $errors[] = 'Test date is required';
+}
+
+if (empty($keperluan)) {
+    $errors[] = 'Purpose (keperluan) is required';
+}
+
+// Validate test date
+if (!empty($test_date)) {
+    $selected_date = new DateTime($test_date);
+    $tomorrow = new DateTime('+1 day');
+    $max_date = new DateTime('+30 days');
     
-    // Validation
-    if (empty($name)) {
-        $errors[] = 'Nama lengkap harus diisi';
+    // Check if date is at least tomorrow
+    if ($selected_date <= $tomorrow) {
+        $errors[] = 'Test date must be at least H+1 from today';
     }
     
-    if (empty($email)) {
-        $errors[] = 'Email harus diisi';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Format email tidak valid';
+    // Check if date is within 30 days
+    if ($selected_date > $max_date) {
+        $errors[] = 'Test date must be within 30 days from today';
     }
     
-    if (empty($password)) {
-        $errors[] = 'Password harus diisi';
-    } elseif (strlen($password) < 6) {
-        $errors[] = 'Password minimal 6 karakter';
-    }
-    
-    if ($password !== $confirm_password) {
-        $errors[] = 'Konfirmasi password tidak cocok';
-    }
-    
-    // Student-specific validation
-    if ($role === 'student') {
-        if (empty($nim)) {
-            $errors[] = 'NIM harus diisi';
-        } elseif (!preg_match('/^\d{10,15}$/', $nim)) {
-            $errors[] = 'NIM harus berupa angka 10-15 digit';
-        }
-        
-        if (empty($no_telpon)) {
-            $errors[] = 'Nomor telepon harus diisi';
-        }
-        
-        if (empty($program_studi)) {
-            $errors[] = 'Program studi harus diisi';
-        }
-        
-        if (empty($jenjang)) {
-            $errors[] = 'Jenjang harus dipilih';
-        }
-        
-        if (empty($fakultas)) {
-            $errors[] = 'Fakultas harus diisi';
-        }
-    }
-    
-    // Admin-specific validation
-    if ($role === 'admin') {
-        if ($admin_code !== 'ADMIN123') {
-            $errors[] = 'Kode admin tidak valid';
-        }
-    }
-    
-    // Check if email already exists
-    if (empty($errors)) {
-        try {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            if ($stmt->fetch()) {
-                $errors[] = 'Email sudah terdaftar';
-            }
-        } catch (PDOException $e) {
-            $errors[] = 'Terjadi kesalahan saat mengecek email';
-        }
-    }
-    
-    // Check if NIM already exists (for students)
-    if ($role === 'student' && !empty($nim) && empty($errors)) {
-        try {
-            $stmt = $pdo->prepare("SELECT id FROM users WHERE nim = ?");
-            $stmt->execute([$nim]);
-            if ($stmt->fetch()) {
-                $errors[] = 'NIM sudah terdaftar';
-            }
-        } catch (PDOException $e) {
-            $errors[] = 'Terjadi kesalahan saat mengecek NIM';
-        }
-    }
-    
-    // Register user if no errors
-    if (empty($errors)) {
-        try {
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            
-            if ($role === 'admin') {
-                $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
-                $result = $stmt->execute([$name, $email, $hashed_password, $role]);
-            } else {
-                $stmt = $pdo->prepare("INSERT INTO users (name, email, password, nim, no_telpon, role, program_studi, jenjang, fakultas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $result = $stmt->execute([$name, $email, $hashed_password, $nim, $no_telpon, $role, $program_studi, $jenjang, $fakultas]);
-            }
-            
-            if ($result) {
-                $success = 'Registrasi berhasil! Silakan login dengan akun Anda.';
-            } else {
-                $errors[] = 'Gagal menyimpan data. Silakan coba lagi.';
-            }
-        } catch (PDOException $e) {
-            error_log("Registration error: " . $e->getMessage());
-            $errors[] = 'Terjadi kesalahan sistem. Silakan coba lagi.';
-        }
+    // Check if date is Tuesday, Thursday, or Saturday
+    $day_of_week = $selected_date->format('N');
+    if (!in_array($day_of_week, [2, 4, 6])) {
+        $errors[] = 'Test is only available on Tuesday, Thursday, and Saturday';
     }
 }
-?>
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar - UPA Bahasa UPNVJ</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        .register-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-        .form-floating > label {
-            color: #6c757d;
-        }
-        .btn-register {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 600;
-        }
-        .btn-register:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .role-option {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .role-option:hover {
-            border-color: #667eea;
-            background-color: #f8f9ff;
-        }
-        .role-option.active {
-            border-color: #667eea;
-            background-color: #667eea;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-lg-8 col-md-10">
-                <div class="register-card p-5">
-                    <!-- Header -->
-                    <div class="text-center mb-4">
-                        <i class="bi bi-mortarboard text-primary" style="font-size: 3rem;"></i>
-                        <h2 class="fw-bold mt-3">Daftar Akun</h2>
-                        <p class="text-muted">UPA Bahasa UPNVJ</p>
-                    </div>
+// Return errors if any
+if (!empty($errors)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'errors' => $errors]);
+    exit;
+}
 
-                    <!-- Alerts -->
-                    <?php if (!empty($errors)): ?>
-                        <div class="alert alert-danger">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            <ul class="mb-0">
-                                <?php foreach ($errors as $error): ?>
-                                    <li><?= htmlspecialchars($error) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($success): ?>
-                        <div class="alert alert-success">
-                            <i class="bi bi-check-circle me-2"></i>
-                            <?= htmlspecialchars($success) ?>
-                            <div class="mt-2">
-                                <a href="login.php" class="btn btn-sm btn-success">Login Sekarang</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Registration Form -->
-                    <form method="POST" id="registerForm">
-                        <!-- Role Selection -->
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Pilih Role</label>
-                            <div class="row g-3">
-                                <div class="col-6">
-                                    <div class="role-option p-3 text-center" onclick="selectRole('student')">
-                                        <input type="radio" name="role" value="student" id="role_student" class="d-none" <?= (!isset($_POST['role']) || $_POST['role'] === 'student') ? 'checked' : '' ?>>
-                                        <i class="bi bi-person-badge d-block mb-2" style="font-size: 2rem;"></i>
-                                        <strong>Mahasiswa</strong>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="role-option p-3 text-center" onclick="selectRole('admin')">
-                                        <input type="radio" name="role" value="admin" id="role_admin" class="d-none" <?= (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'checked' : '' ?>>
-                                        <i class="bi bi-person-gear d-block mb-2" style="font-size: 2rem;"></i>
-                                        <strong>Admin</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Common Fields -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="name" name="name" placeholder="Nama Lengkap" value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" required>
-                                    <label for="name">Nama Lengkap</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input type="email" class="form-control" id="email" name="email" placeholder="Email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
-                                    <label for="email">Email</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Student Fields -->
-                        <div id="student-fields" style="display: <?= (!isset($_POST['role']) || $_POST['role'] === 'student') ? 'block' : 'none' ?>">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="nim" name="nim" placeholder="NIM" value="<?= htmlspecialchars($_POST['nim'] ?? '') ?>">
-                                        <label for="nim">NIM</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input type="tel" class="form-control" id="no_telpon" name="no_telpon" placeholder="Nomor Telepon" value="<?= htmlspecialchars($_POST['no_telpon'] ?? '') ?>">
-                                        <label for="no_telpon">Nomor Telepon</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-8">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="program_studi" name="program_studi" placeholder="Program Studi" value="<?= htmlspecialchars($_POST['program_studi'] ?? '') ?>">
-                                        <label for="program_studi">Program Studi</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-floating">
-                                        <select class="form-select" id="jenjang" name="jenjang">
-                                            <option value="">Pilih</option>
-                                            <option value="D3" <?= (isset($_POST['jenjang']) && $_POST['jenjang'] === 'D3') ? 'selected' : '' ?>>D3</option>
-                                            <option value="S1" <?= (isset($_POST['jenjang']) && $_POST['jenjang'] === 'S1') ? 'selected' : '' ?>>S1</option>
-                                            <option value="S2" <?= (isset($_POST['jenjang']) && $_POST['jenjang'] === 'S2') ? 'selected' : '' ?>>S2</option>
-                                            <option value="S3" <?= (isset($_POST['jenjang']) && $_POST['jenjang'] === 'S3') ? 'selected' : '' ?>>S3</option>
-                                        </select>
-                                        <label for="jenjang">Jenjang</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-3">
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="fakultas" name="fakultas" placeholder="Fakultas" value="<?= htmlspecialchars($_POST['fakultas'] ?? '') ?>">
-                                        <label for="fakultas">Fakultas</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Admin Fields -->
-                        <div id="admin-fields" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'block' : 'none' ?>">
-                            <div class="row g-3 mb-3">
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <input type="password" class="form-control" id="admin_code" name="admin_code" placeholder="Kode Admin">
-                                        <label for="admin_code">Kode Admin</label>
-                                    </div>
-                                    <small class="text-muted">Untuk testing gunakan: ADMIN123</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Password Fields -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                                    <label for="password">Password</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Konfirmasi Password" required>
-                                    <label for="confirm_password">Konfirmasi Password</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary btn-register btn-lg">
-                                <i class="bi bi-person-plus me-2"></i>Daftar Sekarang
-                            </button>
-                        </div>
-
-                        <!-- Login Link -->
-                        <div class="text-center">
-                            <span class="text-muted">Sudah punya akun?</span>
-                            <a href="login.php" class="text-decoration-none fw-semibold">Login di sini</a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Back to Home -->
-        <div class="text-center mt-4">
-            <a href="index.php" class="text-white text-decoration-none">
-                <i class="bi bi-arrow-left me-2"></i>Kembali ke Beranda
-            </a>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function selectRole(role) {
-            // Update radio buttons
-            document.getElementById('role_student').checked = (role === 'student');
-            document.getElementById('role_admin').checked = (role === 'admin');
-            
-            // Update visual appearance
-            document.querySelectorAll('.role-option').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-            
-            // Show/hide appropriate fields
-            document.getElementById('student-fields').style.display = (role === 'student') ? 'block' : 'none';
-            document.getElementById('admin-fields').style.display = (role === 'admin') ? 'block' : 'none';
-            
-            // Update required attributes
-            const studentFields = document.querySelectorAll('#student-fields input, #student-fields select');
-            const adminFields = document.querySelectorAll('#admin-fields input');
-            
-            if (role === 'student') {
-                studentFields.forEach(field => {
-                    if (['nim', 'no_telpon', 'program_studi', 'jenjang', 'fakultas'].includes(field.name)) {
-                        field.required = true;
-                    }
-                });
-                adminFields.forEach(field => field.required = false);
-            } else {
-                studentFields.forEach(field => field.required = false);
-                adminFields.forEach(field => {
-                    if (field.name === 'admin_code') {
-                        field.required = true;
-                    }
-                });
-            }
-        }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectedRole = document.querySelector('input[name="role"]:checked').value;
-            selectRole(selectedRole);
-            
-            // Update visual state
-            document.querySelectorAll('.role-option').forEach(el => el.classList.remove('active'));
-            document.querySelector(`input[value="${selectedRole}"]`).closest('.role-option').classList.add('active');
-        });
-    </script>
-</body>
-</html>
+try {
+    // Check if user has pending registration
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) as count 
+        FROM elpt_registrations 
+        WHERE user_id = ? AND payment_status = 'pending'
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $pending = $stmt->fetch();
+    
+    if ($pending['count'] > 0) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'You already have a pending registration. Please complete payment first.'
+        ]);
+        exit;
+    }
+    
+    // Check availability for the selected date
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) as count 
+        FROM elpt_registrations 
+        WHERE test_date = ? 
+        AND payment_status IN ('pending', 'confirmed')
+    ");
+    $stmt->execute([$test_date]);
+    $registration_count = $stmt->fetch();
+    
+    $max_participants = getSystemSetting('max_participants_per_session', 30);
+    
+    if ($registration_count['count'] >= $max_participants) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Selected date is fully booked. Please choose another date.'
+        ]);
+        exit;
+    }
+    
+    // Generate billing number
+    $billing_number = generateBillingNumber();
+    
+    // Insert registration
+    $stmt = $pdo->prepare("
+        INSERT INTO elpt_registrations 
+        (user_id, test_date, keperluan, billing_number, payment_status) 
+        VALUES (?, ?, ?, ?, 'pending')
+    ");
+    
+    $stmt->execute([
+        $_SESSION['user_id'],
+        $test_date,
+        $keperluan,
+        $billing_number
+    ]);
+    
+    $registration_id = $pdo->lastInsertId();
+    
+    // Log activity
+    logActivity('elpt_registration', "Registered for ELPT test on $test_date");
+    
+    // Get registration details
+    $stmt = $pdo->prepare("
+        SELECT r.*, u.name, u.email 
+        FROM elpt_registrations r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.id = ?
+    ");
+    $stmt->execute([$registration_id]);
+    $registration = $stmt->fetch();
+    
+    // Send notification (optional - implement notification system)
+    // sendNotification($user_id, 'ELPT Registration Successful', '...');
+    
+    // Return success response
+    http_response_code(201);
+    echo json_encode([
+        'success' => true,
+        'message' => 'ELPT registration successful',
+        'data' => [
+            'registration_id' => $registration_id,
+            'billing_number' => $billing_number,
+            'test_date' => $test_date,
+            'keperluan' => $keperluan,
+            'payment_amount' => ELPT_FEE,
+            'payment_status' => 'pending',
+            'slots_remaining' => $max_participants - $registration_count['count'] - 1
+        ]
+    ]);
+    
+} catch (PDOException $e) {
+    error_log("ELPT registration error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Registration failed. Please try again later.'
+    ]);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false, 
+        'message' => $e->getMessage()
+    ]);
+}

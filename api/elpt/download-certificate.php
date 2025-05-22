@@ -1,6 +1,6 @@
 <?php
 // download-certificate.php
-require_once 'api/config/database.php';
+require_once 'config/database.php';
 requireLogin();
 
 // Get result ID from URL

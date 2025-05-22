@@ -1,6 +1,6 @@
 <?php
 // admin/students.php
-require_once '../api/config/database.php';
+require_once '../config/database.php';
 requireRole('admin');
 
 // Handle student actions
