@@ -15,7 +15,7 @@ $errors = [];
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = sanitizeInput($_POST['email'] ?? '');
+    $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $remember_me = isset($_POST['remember_me']);
     
@@ -28,14 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($password)) {
         $errors[] = 'Password diperlukan';
-    } elseif (strlen($password) < 6) {
-        $errors[] = 'Password harus setidaknya 6 karakter';
     }
     
     // Attempt login if no validation errors
     if (empty($errors)) {
         try {
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? AND is_active = 1");
+            // Remove is_active check since it's not in the database
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             
@@ -45,21 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_name'] = $user['name'];
                 $_SESSION['user_role'] = $user['role'];
                 $_SESSION['user_email'] = $user['email'];
-                
-                // Set remember me cookie if requested
-                if ($remember_me) {
-                    $token = bin2hex(random_bytes(32));
-                    $expires = time() + (30 * 24 * 60 * 60); // 30 days
-                    
-                    // Store token in database
-                    $stmt = $pdo->prepare("INSERT INTO remember_tokens (user_id, token, expires_at) VALUES (?, ?, ?)");
-                    $stmt->execute([$user['id'], hash('sha256', $token), date('Y-m-d H:i:s', $expires)]);
-                    
-                    setcookie('remember_token', $token, $expires, '/', '', false, true);
-                }
-                
-                // Log activity
-                logActivity('login', "User logged in: $email");
                 
                 // Redirect based on role
                 if ($user['role'] === 'admin') {
@@ -71,26 +55,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
             } else {
                 $errors[] = 'Email atau password tidak valid';
-                
-                // Log failed attempt
-                logActivity('login_failed', "Failed login attempt for: $email");
             }
             
         } catch (PDOException $e) {
             error_log("Login error: " . $e->getMessage());
-            $errors[] = 'A system error occurred. Please try again later.';
+            $errors[] = 'Terjadi kesalahan sistem. Silakan coba lagi.';
         }
     }
 }
 
 // Check for registration success message
 if (isset($_GET['registered']) && $_GET['registered'] === 'true') {
-    $success = 'Registration successful! Please login with your credentials.';
+    $success = 'Registrasi berhasil! Silakan login dengan kredensial Anda.';
 }
 
 // Check for logout message
 if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
-    $success = 'Kamu telah berhasil logout.';
+    $success = 'Anda telah berhasil logout.';
 }
 ?>
 <!DOCTYPE html>
@@ -101,7 +82,6 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
     <title>Login - UPA Bahasa UPNVJ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="assets/css/custom.css" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -305,6 +285,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                         name="email" 
                         value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" 
                         required
+                        autocomplete="email"
                         placeholder="name@upnvj.ac.id"
                     >
                     <label for="email">
@@ -319,23 +300,12 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                         id="password" 
                         name="password" 
                         required
+                        autocomplete="current-password"
                         placeholder="••••••••"
                     >
                     <label for="password">
                         <i class="bi bi-lock me-2"></i>Password
                     </label>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
-                        <label class="form-check-label" for="remember_me">
-                            Remember me
-                        </label>
-                    </div>
-                    <a href="forgot-password.php" class="forgot-password">
-                        Lupa Password?
-                    </a>
                 </div>
 
                 <button type="submit" class="btn btn-login text-white" id="loginBtn">
@@ -353,6 +323,13 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
             <div class="register-link">
                 <span class="text-muted">Belum memiliki akun?</span>
                 <a href="register.php" class="ms-1">Buat Akun</a>
+            </div>
+
+            <!-- Demo Credentials Info -->
+            <div class="mt-4 p-3 bg-light rounded">
+                <small class="text-muted d-block mb-2"><strong>Demo Credentials:</strong></small>
+                <small class="text-muted d-block">Admin: admin@upabahasa.upnvj.ac.id / password</small>
+                <small class="text-muted d-block">Student: budi@student.upnvj.ac.id / password</small>
             </div>
         </div>
     </div>
@@ -399,12 +376,6 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                     return;
                 }
 
-                if (password.length < 6) {
-                    e.preventDefault();
-                    showFieldError(passwordField, 'Password setidaknya harus memiliki 6 karakter');
-                    return;
-                }
-
                 // Clear any existing errors
                 clearFieldErrors();
 
@@ -419,15 +390,6 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                 const email = this.value.trim();
                 if (email && !isValidEmail(email)) {
                     showFieldError(this, 'Masukkan email yang valid');
-                } else {
-                    clearFieldError(this);
-                }
-            });
-
-            passwordField.addEventListener('input', function() {
-                const password = this.value;
-                if (password && password.length < 6) {
-                    showFieldError(this, 'Password setidaknya harus memiliki 6 karakter');
                 } else {
                     clearFieldError(this);
                 }

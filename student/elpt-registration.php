@@ -214,8 +214,8 @@ while ($start_date <= $end_date) {
                                                 <strong>NIM:</strong> <?= htmlspecialchars($user['nim']) ?>
                                             </div>
                                             <div class="col-md-6">
-                                                <strong>Program Studi:</strong> <?= htmlspecialchars($user['program_studi']) ?><br>
-                                                <strong>Fakultas:</strong> <?= htmlspecialchars($user['fakultas']) ?>
+                                                <strong>Program Studi:</strong> <?= htmlspecialchars($user['program']) ?><br>
+                                                <strong>Fakultas:</strong> <?= htmlspecialchars($user['faculty']) ?>
                                             </div>
                                         </div>
                                     </div>

@@ -333,8 +333,8 @@ while ($start_date <= $end_date) {
                                                     <p class="mb-1"><strong>NIM:</strong> <?= htmlspecialchars($user['nim']) ?></p>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <p class="mb-1"><strong>Program Studi:</strong> <?= htmlspecialchars($user['program_studi']) ?></p>
-                                                    <p class="mb-0"><strong>Fakultas:</strong> <?= htmlspecialchars($user['fakultas']) ?></p>
+                                                    <p class="mb-1"><strong>Program Studi:</strong> <?= htmlspecialchars($user['program']) ?></p>
+                                                    <p class="mb-0"><strong>Fakultas:</strong> <?= htmlspecialchars($user['faculty']) ?></p>
                                                 </div>
                                             </div>
                                         </div>

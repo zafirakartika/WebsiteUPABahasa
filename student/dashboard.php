@@ -116,7 +116,7 @@ $needs_registration = !$latest_registration ||
                     </div>
                     <div class="text-end">
                         <small class="text-muted">NIM: <?= htmlspecialchars($user['nim']) ?></small><br>
-                        <small class="text-muted"><?= htmlspecialchars($user['program_studi']) ?> - <?= htmlspecialchars($user['jenjang']) ?></small>
+                        <small class="text-muted"><?= htmlspecialchars($user['program']) ?> - <?= htmlspecialchars($user['level']) ?></small>
                     </div>
                 </div>
 
@@ -210,7 +210,7 @@ $needs_registration = !$latest_registration ||
                                             <div class="col-md-6">
                                                 <div class="border rounded p-3 mb-3">
                                                     <strong>Keperluan</strong><br>
-                                                    <span><?= htmlspecialchars($latest_registration['keperluan']) ?></span>
+                                                    <span><?= htmlspecialchars($latest_registration['purpose']) ?></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -297,7 +297,7 @@ $needs_registration = !$latest_registration ||
                                     </div>
                                     <div class="col-6">
                                         <small class="text-muted">Jenjang</small><br>
-                                        <strong><?= htmlspecialchars($user['jenjang']) ?></strong>
+                                        <strong><?= htmlspecialchars($user['level']) ?></strong>
                                     </div>
                                 </div>
                             </div>
