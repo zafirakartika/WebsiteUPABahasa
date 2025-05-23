@@ -320,7 +320,7 @@ $available_dates = $stmt->fetchAll();
                             <table class="table table-sm">
                                 <tr><td><strong>Nama:</strong></td><td>${registration.name}</td></tr>
                                 <tr><td><strong>NIM:</strong></td><td>${registration.nim}</td></tr>
-                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program_studi}</td></tr>
+                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program}</td></tr>
                                 <tr><td><strong>Jenjang:</strong></td><td>${registration.jenjang}</td></tr>
                                 <tr><td><strong>Fakultas:</strong></td><td>${registration.fakultas}</td></tr>
                                 <tr><td><strong>No. Telepon:</strong></td><td>${registration.no_telpon || 'N/A'}</td></tr>

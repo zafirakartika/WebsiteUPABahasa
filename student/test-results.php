@@ -6,7 +6,7 @@ $user = getCurrentUser();
 
 // Get all test results for the student
 $stmt = $pdo->prepare("
-    SELECT er.*, r.keperluan, r.billing_number
+    SELECT er.*, r.purpose, r.billing_number
     FROM elpt_results er
     JOIN elpt_registrations r ON er.registration_id = r.id
     WHERE er.user_id = ?

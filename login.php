@@ -324,13 +324,6 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                 <span class="text-muted">Belum memiliki akun?</span>
                 <a href="register.php" class="ms-1">Buat Akun</a>
             </div>
-
-            <!-- Demo Credentials Info -->
-            <div class="mt-4 p-3 bg-light rounded">
-                <small class="text-muted d-block mb-2"><strong>Demo Credentials:</strong></small>
-                <small class="text-muted d-block">Admin: admin@upabahasa.upnvj.ac.id / password</small>
-                <small class="text-muted d-block">Student: budi@student.upnvj.ac.id / password</small>
-            </div>
         </div>
     </div>
 

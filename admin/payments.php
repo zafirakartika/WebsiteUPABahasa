@@ -39,7 +39,7 @@ $filter = $_GET['filter'] ?? 'pending';
 $search = $_GET['search'] ?? '';
 
 $sql = "
-    SELECT r.*, u.name, u.nim, u.no_telpon, u.program_studi, u.fakultas, u.jenjang 
+    SELECT r.*, u.name, u.nim, u.no_telpon, u.program, u.faculty, u.level 
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     WHERE 1=1

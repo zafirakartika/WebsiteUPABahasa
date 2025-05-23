@@ -83,7 +83,7 @@ $filter_date = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
 
 $sql = "
-    SELECT r.*, u.name, u.nim, u.program_studi, u.fakultas,
+    SELECT r.*, u.name, u.nim, u.program, u.faculty,
            er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
@@ -263,13 +263,13 @@ $available_dates = $stmt->fetchAll();
                                                         <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
                                                         <small class="text-muted">
                                                             NIM: <?= htmlspecialchars($reg['nim']) ?><br>
-                                                            <?= htmlspecialchars($reg['program_studi']) ?>
+                                                            <?= htmlspecialchars($reg['program']) ?>
                                                         </small>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <strong><?= formatDate($reg['test_date']) ?></strong><br>
-                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span>
+                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
                                                 </td>
                                                 <td>
                                                     <?php if ($reg['result_id']): ?>

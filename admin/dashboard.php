@@ -23,7 +23,7 @@ $stats['total_students'] = $stmt->fetch()['count'];
 
 // Recent registrations
 $stmt = $pdo->query("
-    SELECT r.*, u.name, u.nim, u.program_studi, u.fakultas 
+    SELECT r.*, u.name, u.nim, u.program, u.faculty 
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     ORDER BY r.created_at DESC 
@@ -215,12 +215,12 @@ $upcoming_tests = $stmt->fetchAll();
                                                         <td>
                                                             <div>
                                                                 <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
-                                                                <small class="text-muted"><?= htmlspecialchars($reg['program_studi']) ?></small>
+                                                                <small class="text-muted"><?= htmlspecialchars($reg['program']) ?></small>
                                                             </div>
                                                         </td>
                                                         <td><?= htmlspecialchars($reg['nim']) ?></td>
                                                         <td><?= formatDate($reg['test_date']) ?></td>
-                                                        <td><span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span></td>
+                                                        <td><span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span></td>
                                                         <td>
                                                             <span class="badge <?= 
                                                                 $reg['payment_status'] === 'confirmed' ? 'bg-success' : 

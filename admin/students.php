@@ -43,8 +43,8 @@ if (isset($_GET['action'])) {
 }
 
 // Get students with filters
-$filter_fakultas = $_GET['fakultas'] ?? '';
-$filter_jenjang = $_GET['jenjang'] ?? '';
+$filter_fakultas = $_GET['faculty'] ?? '';
+$filter_jenjang = $_GET['level'] ?? '';
 $filter_status = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? '';
 
@@ -64,12 +64,12 @@ $sql = "
 $params = [];
 
 if (!empty($filter_fakultas)) {
-    $sql .= " AND u.fakultas = ?";
+    $sql .= " AND u.faculty = ?";
     $params[] = $filter_fakultas;
 }
 
 if (!empty($filter_jenjang)) {
-    $sql .= " AND u.jenjang = ?";
+    $sql .= " AND u.level = ?";
     $params[] = $filter_jenjang;
 }
 
@@ -93,7 +93,7 @@ $stmt->execute($params);
 $students = $stmt->fetchAll();
 
 // Get filter options
-$stmt = $pdo->query("SELECT DISTINCT fakultas FROM users WHERE role = 'student' AND fakultas IS NOT NULL ORDER BY fakultas");
+$stmt = $pdo->query("SELECT DISTINCT faculty FROM users WHERE role = 'student' AND faculty IS NOT NULL ORDER BY faculty");
 $fakultas_options = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
 $jenjang_options = ['D3', 'S1', 'S2', 'S3'];
@@ -351,9 +351,9 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                                 </td>
                                                 <td>
                                                     <div>
-                                                        <strong><?= htmlspecialchars($student['program_studi']) ?></strong><br>
+                                                        <strong><?= htmlspecialchars($student['program']) ?></strong><br>
                                                         <small class="text-muted">
-                                                            <?= htmlspecialchars($student['jenjang']) ?> - <?= htmlspecialchars($student['fakultas']) ?>
+                                                            <?= htmlspecialchars($student['level']) ?> - <?= htmlspecialchars($student['faculty']) ?>
                                                         </small>
                                                     </div>
                                                 </td>
@@ -523,9 +523,9 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                 </div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless">
-                                        <tr><td><strong>Program Studi:</strong></td><td>${student.program_studi}</td></tr>
-                                        <tr><td><strong>Jenjang:</strong></td><td>${student.jenjang}</td></tr>
-                                        <tr><td><strong>Fakultas:</strong></td><td>${student.fakultas}</td></tr>
+                                        <tr><td><strong>Program Studi:</strong></td><td>${student.program}</td></tr>
+                                        <tr><td><strong>Jenjang:</strong></td><td>${student.level}</td></tr>
+                                        <tr><td><strong>Fakultas:</strong></td><td>${student.faculty}</td></tr>
                                         <tr><td><strong>Status Kursus:</strong></td><td>
                                             ${student.course_status ? 
                                                 `<span class="badge bg-primary">${student.course_status.toUpperCase()}</span>` : 
