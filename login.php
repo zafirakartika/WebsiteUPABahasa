@@ -21,15 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Validation
     if (empty($email)) {
-        $errors[] = 'Email is required';
+        $errors[] = 'Email diperlukan';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Please enter a valid email address';
+        $errors[] = 'Masukkan email yang valid';
     }
     
     if (empty($password)) {
-        $errors[] = 'Password is required';
+        $errors[] = 'Password diperlukan';
     } elseif (strlen($password) < 6) {
-        $errors[] = 'Password must be at least 6 characters';
+        $errors[] = 'Password harus setidaknya 6 karakter';
     }
     
     // Attempt login if no validation errors
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
                 
             } else {
-                $errors[] = 'Invalid email or password';
+                $errors[] = 'Email atau password tidak valid';
                 
                 // Log failed attempt
                 logActivity('login_failed', "Failed login attempt for: $email");
@@ -90,7 +90,7 @@ if (isset($_GET['registered']) && $_GET['registered'] === 'true') {
 
 // Check for logout message
 if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
-    $success = 'You have been successfully logged out.';
+    $success = 'Kamu telah berhasil logout.';
 }
 ?>
 <!DOCTYPE html>
@@ -262,7 +262,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
     <div class="back-home">
         <a href="index.php">
             <i class="bi bi-arrow-left me-2"></i>
-            Back to Home
+            Kembali ke Beranda
         </a>
     </div>
 
@@ -272,8 +272,8 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                 <div class="text-primary mb-3">
                     <i class="bi bi-mortarboard" style="font-size: 3rem;"></i>
                 </div>
-                <h1>Welcome Back</h1>
-                <p>Sign in to your UPA Bahasa UPNVJ account</p>
+                <h1>Selamat Datang Kembali!</h1>
+                <p>Login ke akun UPA Bahasa UPNVJ</p>
             </div>
 
             <!-- Success Message -->
@@ -308,7 +308,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                         placeholder="name@upnvj.ac.id"
                     >
                     <label for="email">
-                        <i class="bi bi-envelope me-2"></i>Email Address
+                        <i class="bi bi-envelope me-2"></i>Email
                     </label>
                 </div>
 
@@ -334,25 +334,25 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                         </label>
                     </div>
                     <a href="forgot-password.php" class="forgot-password">
-                        Forgot password?
+                        Lupa Password?
                     </a>
                 </div>
 
                 <button type="submit" class="btn btn-login text-white" id="loginBtn">
                     <span class="btn-text">
-                        Sign In
+                        Login
                         <i class="bi bi-arrow-right ms-2"></i>
                     </span>
                     <span class="btn-loading d-none">
                         <span class="loading-spinner me-2"></span>
-                        Signing in...
+                        Logging in...
                     </span>
                 </button>
             </form>
 
             <div class="register-link">
-                <span class="text-muted">Don't have an account?</span>
-                <a href="register.php" class="ms-1">Create Account</a>
+                <span class="text-muted">Belum memiliki akun?</span>
+                <a href="register.php" class="ms-1">Buat Akun</a>
             </div>
         </div>
     </div>
@@ -383,25 +383,25 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                 // Basic client-side validation
                 if (!email) {
                     e.preventDefault();
-                    showFieldError(emailField, 'Email is required');
+                    showFieldError(emailField, 'Email diperlukan');
                     return;
                 }
 
                 if (!isValidEmail(email)) {
                     e.preventDefault();
-                    showFieldError(emailField, 'Please enter a valid email address');
+                    showFieldError(emailField, 'Masukkan email yang valid');
                     return;
                 }
 
                 if (!password) {
                     e.preventDefault();
-                    showFieldError(passwordField, 'Password is required');
+                    showFieldError(passwordField, 'Password diperlukan');
                     return;
                 }
 
                 if (password.length < 6) {
                     e.preventDefault();
-                    showFieldError(passwordField, 'Password must be at least 6 characters');
+                    showFieldError(passwordField, 'Password setidaknya harus memiliki 6 karakter');
                     return;
                 }
 
@@ -418,7 +418,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
             emailField.addEventListener('blur', function() {
                 const email = this.value.trim();
                 if (email && !isValidEmail(email)) {
-                    showFieldError(this, 'Please enter a valid email address');
+                    showFieldError(this, 'Masukkan email yang valid');
                 } else {
                     clearFieldError(this);
                 }
@@ -427,7 +427,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
             passwordField.addEventListener('input', function() {
                 const password = this.value;
                 if (password && password.length < 6) {
-                    showFieldError(this, 'Password must be at least 6 characters');
+                    showFieldError(this, 'Password setidaknya harus memiliki 6 karakter');
                 } else {
                     clearFieldError(this);
                 }

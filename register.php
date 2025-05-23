@@ -28,31 +28,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Validation
     if (empty($name)) {
-        $errors[] = 'Full name is required';
+        $errors[] = 'Nama lengkap diperlukan';
     }
     
     if (empty($email)) {
-        $errors[] = 'Email is required';
+        $errors[] = 'Email diperlukan';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = 'Please enter a valid email address';
+        $errors[] = 'Masukkan email yang valid';
     }
     
     if (empty($password)) {
         $errors[] = 'Password is required';
     } elseif (strlen($password) < 6) {
-        $errors[] = 'Password must be at least 6 characters';
+        $errors[] = 'Password harus setidaknya memiliki 6 karakter';
     }
     
     if ($password !== $confirm_password) {
-        $errors[] = 'Passwords do not match';
+        $errors[] = 'Passwords tidak sama';
     }
     
     // Student-specific validation
     if (!$is_admin) {
         if (empty($nim)) {
-            $errors[] = 'NIM is required for student registration';
+            $errors[] = 'NIM diperlukan untuk registrasi mahasiswa';
         } elseif (!preg_match('/^\d{10}$/', $nim)) {
-            $errors[] = 'NIM must be exactly 10 digits';
+            $errors[] = 'NIM harus 10 digit';
         } else {
             // Validate NIM with SIAKAD simulation
             $nim_validation = validateNimWithSiakad($nim);
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($is_admin) {
         $valid_admin_code = 'ADMIN123'; // Simple admin code for demo
         if ($registration_code !== $valid_admin_code) {
-            $errors[] = 'Invalid admin registration code';
+            $errors[] = 'Kode registrasi admin invalid';
         }
     }
     
@@ -78,10 +78,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->execute([$email]);
             if ($stmt->fetch()) {
-                $errors[] = 'Email is already registered';
+                $errors[] = 'Email telah terdaftar';
             }
         } catch (PDOException $e) {
-            $errors[] = 'System error occurred while checking email';
+            $errors[] = 'Terjadi error saat mengecek email';
         }
     }
     
@@ -91,10 +91,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE nim = ?");
             $stmt->execute([$nim]);
             if ($stmt->fetch()) {
-                $errors[] = 'NIM is already registered';
+                $errors[] = 'NIM telah terdaftar';
             }
         } catch (PDOException $e) {
-            $errors[] = 'System error occurred while checking NIM';
+            $errors[] = 'Terjadi error saat mengecek NIM';
         }
     }
     
@@ -379,7 +379,7 @@ if (!function_exists('sanitizeInput')) {
                     <i class="bi bi-mortarboard" style="font-size: 3rem;"></i>
                 </div>
                 <h1>Register</h1>
-                <p>Join UPA Bahasa UPNVJ community</p>
+                <p>Buat akun dan bergabung dengan UPA Bahasa</p>
             </div>
 
             <!-- Error Messages -->
@@ -400,8 +400,8 @@ if (!function_exists('sanitizeInput')) {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="isAdmin" name="isAdmin" onchange="toggleAdminFields()">
                         <label class="form-check-label" for="isAdmin">
-                            <strong>Register as Admin</strong>
-                            <small class="d-block text-muted">Check this if you're registering as an administrator</small>
+                            <strong>Daftar sebagai Admin</strong>
+                            <small class="d-block text-muted">Ceklis jika mendaftar sebagai admin</small>
                         </label>
                     </div>
                 </div>
@@ -418,7 +418,7 @@ if (!function_exists('sanitizeInput')) {
                         placeholder="Your full name"
                     >
                     <label for="name">
-                        <i class="bi bi-person me-2"></i>Full Name
+                        <i class="bi bi-person me-2"></i>Nama Lengkap
                     </label>
                 </div>
 
@@ -434,7 +434,7 @@ if (!function_exists('sanitizeInput')) {
                         placeholder="name@upnvj.ac.id"
                     >
                     <label for="email">
-                        <i class="bi bi-envelope me-2"></i>Email Address
+                        <i class="bi bi-envelope me-2"></i>Email
                     </label>
                 </div>
 
@@ -457,7 +457,7 @@ if (!function_exists('sanitizeInput')) {
                     <div id="nimValidation" class="nim-validation"></div>
                     <small class="text-muted mt-1">
                         <i class="bi bi-info-circle me-1"></i>
-                        NIM will be validated with SIAKAD UPNVJ database
+                        NIM akan divalidasi dengan SIAKAD UPNVJ
                     </small>
                 </div>
 
@@ -471,10 +471,10 @@ if (!function_exists('sanitizeInput')) {
                         placeholder="Enter admin registration code"
                     >
                     <label for="registrationCode">
-                        <i class="bi bi-key me-2"></i>Admin Registration Code
+                        <i class="bi bi-key me-2"></i>Kode Registrasi Admin
                     </label>
                     <small class="text-muted mt-1">
-                        For demo purposes, use code: <strong>ADMIN123</strong>
+                        Untuk demo gunakan kode: <strong>ADMIN123</strong>
                     </small>
                 </div>
 
@@ -505,7 +505,7 @@ if (!function_exists('sanitizeInput')) {
                         placeholder="••••••••"
                     >
                     <label for="confirmPassword">
-                        <i class="bi bi-lock-fill me-2"></i>Confirm Password
+                        <i class="bi bi-lock-fill me-2"></i>Konfirmasi Password
                     </label>
                 </div>
 
@@ -522,7 +522,7 @@ if (!function_exists('sanitizeInput')) {
             </form>
 
             <div class="login-link">
-                <span class="text-muted">Already have an account?</span>
+                <span class="text-muted">Sudah memiliki akun?</span>
                 <a href="login.php" class="ms-1">Login</a>
             </div>
         </div>
