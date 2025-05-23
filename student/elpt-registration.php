@@ -13,7 +13,7 @@ $pending_registration = $stmt->fetch();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
     $test_date = $_POST['test_date'] ?? '';
-    $keperluan = $_POST['keperluan'] ?? '';
+    $keperluan = $_POST['purpose'] ?? '';
     
     // Validation
     if (empty($test_date)) {
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
         try {
             $billing_number = generateBillingNumber();
             
-            $stmt = $pdo->prepare("INSERT INTO elpt_registrations (user_id, test_date, keperluan, billing_number) VALUES (?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO elpt_registrations (user_id, test_date, purpose, billing_number) VALUES (?, ?, ?, ?)");
             $stmt->execute([$_SESSION['user_id'], $test_date, $keperluan, $billing_number]);
             
             showAlert('Pendaftaran berhasil! Silakan lakukan pembayaran dengan billing number: ' . $billing_number, 'success');

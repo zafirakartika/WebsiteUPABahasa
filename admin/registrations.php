@@ -3,13 +3,28 @@
 require_once '../config/database.php';
 requireRole('admin');
 
+// Handle delete action
+if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
+    $registration_id = $_GET['delete'];
+    
+    try {
+        $stmt = $pdo->prepare("DELETE FROM elpt_registrations WHERE id = ?");
+        $stmt->execute([$registration_id]);
+        showAlert('Pendaftaran berhasil dihapus!', 'success');
+        header('Location: registrations.php');
+        exit;
+    } catch (PDOException $e) {
+        showAlert('Tidak dapat menghapus pendaftaran: ' . $e->getMessage(), 'error');
+    }
+}
+
 // Get all registrations with filters
 $filter_status = $_GET['status'] ?? 'all';
 $filter_date = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
 
 $sql = "
-    SELECT r.*, u.name, u.nim, u.no_telpon, u.program_studi, u.fakultas, u.jenjang 
+    SELECT r.*, u.name, u.nim, u.no_telpon, u.program, u.faculty, u.level 
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     WHERE 1=1
@@ -143,6 +158,172 @@ $available_dates = $stmt->fetchAll();
                                 <i class="bi bi-calendar-event" style="font-size: 2rem;"></i>
                                 <div class="display-6 fw-bold mt-2"><?= array_sum($stats) ?></div>
                                 <h6>Total Pendaftaran</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-dark">
+                            <div class="card-body">
+                                <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['pending'] ?? 0 ?></div>
+                                <h6>Menunggu</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-success text-white">
+                            <div class="card-body">
+                                <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['confirmed'] ?? 0 ?></div>
+                                <h6>Dikonfirmasi</h6>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-danger text-white">
+                            <div class="card-body">
+                                <i class="bi bi-x-circle" style="font-size: 2rem;"></i>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['rejected'] ?? 0 ?></div>
+                                <h6>Ditolak</h6>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="GET" class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select">
+                                    <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>Semua Status</option>
+                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Menunggu</option>
+                                    <option value="confirmed" <?= $filter_status === 'confirmed' ? 'selected' : '' ?>>Dikonfirmasi</option>
+                                    <option value="rejected" <?= $filter_status === 'rejected' ? 'selected' : '' ?>>Ditolak</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Tanggal Tes</label>
+                                <select name="date" class="form-select">
+                                    <option value="">Semua Tanggal</option>
+                                    <?php foreach ($available_dates as $date): ?>
+                                        <option value="<?= $date['test_date'] ?>" <?= $filter_date === $date['test_date'] ? 'selected' : '' ?>>
+                                            <?= formatDate($date['test_date']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Pencarian</label>
+                                <input type="text" name="search" class="form-control" placeholder="Nama, NIM, atau Billing Number" value="<?= htmlspecialchars($search) ?>">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-search"></i> Filter
+                                    </button>
+                                    <a href="registrations.php" class="btn btn-outline-secondary btn-sm">Reset</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Registrations Table -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Data Pendaftaran</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <?php if (empty($registrations)): ?>
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                                <h5 class="text-muted mt-3">Tidak ada data pendaftaran</h5>
+                                <p class="text-muted">Belum ada pendaftaran atau tidak ada yang sesuai dengan filter</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 data-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Tanggal Daftar</th>
+                                            <th>Mahasiswa</th>
+                                            <th>Kontak</th>
+                                            <th>Tanggal Tes</th>
+                                            <th>Keperluan</th>
+                                            <th>Billing</th>
+                                            <th>Status</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($registrations as $reg): ?>
+                                            <tr>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        <?= formatDate($reg['created_at']) ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div>
+                                                        <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
+                                                        <small class="text-muted">
+                                                            NIM: <?= htmlspecialchars($reg['nim']) ?><br>
+                                                            <?= htmlspecialchars($reg['program_studi']) ?> - <?= htmlspecialchars($reg['jenjang']) ?>
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <small>
+                                                        <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($reg['no_telpon'] ?? 'N/A') ?><br>
+                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['fakultas']) ?>
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <strong><?= formatDate($reg['test_date']) ?></strong><br>
+                                                    <small class="text-muted"><?= date('l', strtotime($reg['test_date'])) ?></small>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span>
+                                                </td>
+                                                <td>
+                                                    <code class="bg-light p-1 rounded"><?= htmlspecialchars($reg['billing_number']) ?></code>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?= 
+                                                        $reg['payment_status'] === 'confirmed' ? 'bg-success' : 
+                                                        ($reg['payment_status'] === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') 
+                                                    ?>">
+                                                        <?= strtoupper($reg['payment_status']) ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#detailModal"
+                                                                data-registration='<?= json_encode($reg) ?>'>
+                                                            <i class="bi bi-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-warning" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#editModal"
+                                                                data-registration='<?= json_encode($reg) ?>'>
+                                                            <i class="bi bi-pencil"></i>
+                                                        </button>
+                                                        <a href="?delete=<?= $reg['id'] ?>" 
+                                                           class="btn btn-outline-danger confirm-action"
+                                                           data-message="Hapus pendaftaran ini?">
+                                                            <i class="bi bi-trash"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -320,7 +501,7 @@ $available_dates = $stmt->fetchAll();
                             <table class="table table-sm">
                                 <tr><td><strong>Nama:</strong></td><td>${registration.name}</td></tr>
                                 <tr><td><strong>NIM:</strong></td><td>${registration.nim}</td></tr>
-                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program}</td></tr>
+                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program_studi}</td></tr>
                                 <tr><td><strong>Jenjang:</strong></td><td>${registration.jenjang}</td></tr>
                                 <tr><td><strong>Fakultas:</strong></td><td>${registration.fakultas}</td></tr>
                                 <tr><td><strong>No. Telepon:</strong></td><td>${registration.no_telpon || 'N/A'}</td></tr>
@@ -365,7 +546,7 @@ $available_dates = $stmt->fetchAll();
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
                 submitBtn.disabled = true;
                 
-                fetch('api/admin/update-registration.php', {
+                fetch('../api/admin/update-registration.php', {
                     method: 'POST',
                     body: formData
                 })
@@ -424,170 +605,4 @@ $available_dates = $stmt->fetchAll();
         }
     </script>
 </body>
-</html>>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-warning text-dark">
-                            <div class="card-body">
-                                <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
-                                <div class="display-6 fw-bold mt-2"><?= $stats['pending'] ?? 0 ?></div>
-                                <h6>Menunggu</h6>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-success text-white">
-                            <div class="card-body">
-                                <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
-                                <div class="display-6 fw-bold mt-2"><?= $stats['confirmed'] ?? 0 ?></div>
-                                <h6>Dikonfirmasi</h6>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-danger text-white">
-                            <div class="card-body">
-                                <i class="bi bi-x-circle" style="font-size: 2rem;"></i>
-                                <div class="display-6 fw-bold mt-2"><?= $stats['rejected'] ?? 0 ?></div>
-                                <h6>Ditolak</h6>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <form method="GET" class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
-                                    <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>Semua Status</option>
-                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Menunggu</option>
-                                    <option value="confirmed" <?= $filter_status === 'confirmed' ? 'selected' : '' ?>>Dikonfirmasi</option>
-                                    <option value="rejected" <?= $filter_status === 'rejected' ? 'selected' : '' ?>>Ditolak</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Tanggal Tes</label>
-                                <select name="date" class="form-select">
-                                    <option value="">Semua Tanggal</option>
-                                    <?php foreach ($available_dates as $date): ?>
-                                        <option value="<?= $date['test_date'] ?>" <?= $filter_date === $date['test_date'] ? 'selected' : '' ?>>
-                                            <?= formatDate($date['test_date']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Pencarian</label>
-                                <input type="text" name="search" class="form-control" placeholder="Nama, NIM, atau Billing Number" value="<?= htmlspecialchars($search) ?>">
-                            </div>
-                            <div class="col-md-2">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-search"></i> Filter
-                                    </button>
-                                    <a href="registrations.php" class="btn btn-outline-secondary btn-sm">Reset</a>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Registrations Table -->
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Data Pendaftaran</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <?php if (empty($registrations)): ?>
-                            <div class="text-center py-5">
-                                <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
-                                <h5 class="text-muted mt-3">Tidak ada data pendaftaran</h5>
-                                <p class="text-muted">Belum ada pendaftaran atau tidak ada yang sesuai dengan filter</p>
-                            </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0 data-table">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Tanggal Daftar</th>
-                                            <th>Mahasiswa</th>
-                                            <th>Kontak</th>
-                                            <th>Tanggal Tes</th>
-                                            <th>Keperluan</th>
-                                            <th>Billing</th>
-                                            <th>Status</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($registrations as $reg): ?>
-                                            <tr>
-                                                <td>
-                                                    <small class="text-muted">
-                                                        <?= formatDate($reg['created_at']) ?>
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
-                                                        <small class="text-muted">
-                                                            NIM: <?= htmlspecialchars($reg['nim']) ?><br>
-                                                            <?= htmlspecialchars($reg['program_studi']) ?> - <?= htmlspecialchars($reg['jenjang']) ?>
-                                                        </small>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <small>
-                                                        <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($reg['no_telpon'] ?? 'N/A') ?><br>
-                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['fakultas']) ?>
-                                                    </small>
-                                                </td>
-                                                <td>
-                                                    <strong><?= formatDate($reg['test_date']) ?></strong><br>
-                                                    <small class="text-muted"><?= date('l', strtotime($reg['test_date'])) ?></small>
-                                                </td>
-                                                <td>
-                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span>
-                                                </td>
-                                                <td>
-                                                    <code class="bg-light p-1 rounded"><?= htmlspecialchars($reg['billing_number']) ?></code>
-                                                </td>
-                                                <td>
-                                                    <span class="badge <?= 
-                                                        $reg['payment_status'] === 'confirmed' ? 'bg-success' : 
-                                                        ($reg['payment_status'] === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') 
-                                                    ?>">
-                                                        <?= strtoupper($reg['payment_status']) ?>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#detailModal"
-                                                                data-registration='<?= json_encode($reg) ?>'>
-                                                            <i class="bi bi-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-warning" 
-                                                                data-bs-toggle="modal" 
-                                                                data-bs-target="#editModal"
-                                                                data-registration='<?= json_encode($reg) ?>'>
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <a href="?delete=<?= $reg['id'] ?>" 
-                                                           class="btn btn-outline-danger confirm-action"
-                                                           data-message="Hapus pendaftaran ini?">
-                                                            <i class="bi bi-trash"></i>
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div
+</html>
