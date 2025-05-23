@@ -300,7 +300,7 @@ INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program_studi`
 
 INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program_studi`, `fakultas`, `jenjang`, `is_active`) VALUES
 ('Budi Santoso', 'budi@student.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2110511032', 'student', 'Hubungan Internasional', 'Fakultas Ilmu Sosial dan Ilmu Politik', 'S1', 1),
-('Sari Dewi', 'sari@student.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2210501071', 'student', 'Sistem Informasi', 'Fakultas Ilmu Komputer', 'S1', 1);
+('Zafira Kartika', 'zafira@student.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2210501071', 'student', 'Sistem Informasi', 'Fakultas Ilmu Komputer', 'D3', 1);
 
 -- Password for both students is: password
 
