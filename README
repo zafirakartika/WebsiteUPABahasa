@@ -117,18 +117,18 @@ upa-bahasa/
    ```bash
    # Buat database MySQL
    mysql -u root -p
-   CREATE DATABASE db_upabahasa;
+   CREATE DATABASE upa_bahasa;
    exit
 
    # Import schema database
-   mysql -u root -p db_upabahasa < database_schema.sql
+   mysql -u root -p upa_bahasa < database_schema.sql
    ```
 
 3. **Konfigurasi Database**
    Edit file `api/config/database.php`:
    ```php
    define('DB_HOST', 'localhost');
-   define('DB_NAME', 'db_upabahasa');
+   define('DB_NAME', 'upa_bahasa');
    define('DB_USER', 'root');
    define('DB_PASS', 'your_password');
    ```
@@ -176,7 +176,7 @@ Buat file `.env` di root directory:
 ```env
 # Database Configuration
 DB_HOST=localhost
-DB_NAME=db_upabahasa
+DB_NAME=upa_bahasa
 DB_USER=root
 DB_PASS=your_password
 
@@ -348,7 +348,7 @@ composer require --dev phpunit/phpunit
 ### Backup Strategy
 ```bash
 # Database backup
-mysqldump -u root -p db_upabahasa > backup_$(date +%Y%m%d).sql
+mysqldump -u root -p upa_bahasa > backup_$(date +%Y%m%d).sql
 
 # File backup
 tar -czf files_backup_$(date +%Y%m%d).tar.gz uploads/

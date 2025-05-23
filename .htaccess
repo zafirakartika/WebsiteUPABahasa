@@ -1,103 +1,69 @@
-# .htaccess for UPA Bahasa UPNVJ
-# Place this file in the root of your project (upa-bahasa/.htaccess)
+# Simple .htaccess for UPA Bahasa UPNVJ local development
+# Place this file in your project root (where index.php is located)
 
 # Enable mod_rewrite
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Set the base directory - adjust this based on your setup
-    # If in subfolder: RewriteBase /upa-bahasa/
-    # If in root: RewriteBase /
-    RewriteBase /upa-bahasa/
+    # Set the base directory for localhost
+    # Adjust this based on your folder structure
+    # If your project is in xampp/htdocs/test/ then:
+    RewriteBase /test/
     
-    # Redirect to HTTPS (uncomment when using HTTPS)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # If your project is directly in xampp/htdocs/ then:
+    # RewriteBase /
     
-    # Remove trailing slashes except for directories
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [R=301,L]
+    # Prevent access to sensitive files and directories
+    RewriteRule ^config/ - [F,L]
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule \.(env|ini|log|conf)$ - [F,L]
     
-    # Prevent access to sensitive files
-    RewriteRule ^(config|includes|uploads/private)/.*$ - [F,L]
-    RewriteRule \.(env|ini|log|sh|sql|bak)$ - [F,L]
-    
-    # Handle API routes
+    # Handle missing files - redirect to error page
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^api/([^/]+)/([^/]+)/?$ api/$1/$2.php [L,QSA]
-    
-    # Handle clean URLs for main pages
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^login/?$ login.php [L]
-    RewriteRule ^register/?$ register.php [L]
-    RewriteRule ^logout/?$ logout.php [L]
-    
-    # Handle admin routes
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^admin/?$ admin/dashboard.php [L]
-    
-    # Handle student routes
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^student/?$ student/dashboard.php [L]
-</IfModule>
-
-# Security Headers
-<IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set X-XSS-Protection "1; mode=block"
+    RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|jpeg|gif|ico|svg)$
+    RewriteRule ^(.*)$ error.php?error=404 [L,QSA]
 </IfModule>
 
 # Prevent directory browsing
 Options -Indexes
 
-# Protect sensitive files
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|sql|conf|bak|env)$">
-    Order Allow,Deny
-    Deny from all
-</FilesMatch>
-
 # Set default charset
 AddDefaultCharset UTF-8
 
-# PHP Settings (adjust as needed)
+# Basic security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options SAMEORIGIN
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP Settings for development
 <IfModule mod_php7.c>
     php_value upload_max_filesize 10M
     php_value post_max_size 10M
     php_value max_execution_time 300
-    php_value max_input_time 300
-    php_flag display_errors Off
+    php_flag display_errors On
     php_flag log_errors On
-    php_value error_log logs/php_errors.log
 </IfModule>
 
-# Enable compression
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/plain
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/xml
-    AddOutputFilterByType DEFLATE text/css
-    AddOutputFilterByType DEFLATE application/xml
-    AddOutputFilterByType DEFLATE application/xhtml+xml
-    AddOutputFilterByType DEFLATE application/rss+xml
-    AddOutputFilterByType DEFLATE application/javascript
-    AddOutputFilterByType DEFLATE application/x-javascript
-    AddOutputFilterByType DEFLATE application/json
+# For PHP 8.x
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+    php_flag display_errors On
+    php_flag log_errors On
 </IfModule>
 
-# Cache control
+# Cache control for static files
 <IfModule mod_expires.c>
     ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/jpg "access plus 1 month"
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/gif "access plus 1 month"
-    ExpiresByType image/png "access plus 1 month"
-    ExpiresByType text/css "access plus 1 week"
-    ExpiresByType application/javascript "access plus 1 week"
-    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType image/ico "access plus 1 month"
 </IfModule>

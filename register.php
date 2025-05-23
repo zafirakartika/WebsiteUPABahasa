@@ -38,13 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($password)) {
-        $errors[] = 'Password is required';
+        $errors[] = 'Password diperlukan';
     } elseif (strlen($password) < 6) {
         $errors[] = 'Password harus setidaknya memiliki 6 karakter';
     }
     
     if ($password !== $confirm_password) {
-        $errors[] = 'Passwords tidak sama';
+        $errors[] = 'Password tidak sama';
     }
     
     // Student-specific validation
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Admin-specific validation
     if ($is_admin) {
-        $valid_admin_code = 'ADMIN123'; // Simple admin code for demo
+        $valid_admin_code = getSystemSetting('admin_registration_code', 'ADMIN123');
         if ($registration_code !== $valid_admin_code) {
             $errors[] = 'Kode registrasi admin invalid';
         }
@@ -118,16 +118,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $stmt = $pdo->prepare("
                     INSERT INTO users 
-                    (name, email, password, nim, role, program, faculty, level) 
+                    (name, email, password, nim, role, program_studi, fakultas, jenjang) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $name, $email, $hashed_password, $nim, $role,
-                    $siakad_data['program'], $siakad_data['faculty'], $siakad_data['level']
+                    $siakad_data['program_studi'], $siakad_data['fakultas'], $siakad_data['jenjang']
                 ]);
             }
             
             $user_id = $pdo->lastInsertId();
+            
+            // Log activity
+            logActivity('user_registration', "New $role registered: $email", $user_id);
             
             $pdo->commit();
             
@@ -138,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             $pdo->rollBack();
             error_log("Registration error: " . $e->getMessage());
-            $errors[] = 'Registration failed. Please try again.';
+            $errors[] = 'Registrasi gagal. Silakan coba lagi.';
         }
     }
 }
@@ -175,23 +178,42 @@ function validateNimWithSiakad($nim) {
 function getSiakadData($nim) {
     // Simulate different programs based on NIM pattern
     $programs = [
-        '221050' => ['program' => 'Sistem Informasi', 'level' => 'S1', 'faculty' => 'Fakultas Ilmu Komputer'],
-        '221051' => ['program' => 'Hubungan Internasional', 'level' => 'S1', 'faculty' => 'Fakultas Ilmu Sosial dan Ilmu Politik'],
-        '221052' => ['program' => 'Manajemen', 'level' => 'S1', 'faculty' => 'Fakultas Ekonomi dan Bisnis'],
-        '221053' => ['program' => 'Teknik Informatika', 'level' => 'S1', 'faculty' => 'Fakultas Teknik'],
+        '221050' => [
+            'program_studi' => 'Sistem Informasi', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Ilmu Komputer'
+        ],
+        '221051' => [
+            'program_studi' => 'Hubungan Internasional', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Ilmu Sosial dan Ilmu Politik'
+        ],
+        '221052' => [
+            'program_studi' => 'Manajemen', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Ekonomi dan Bisnis'
+        ],
+        '221053' => [
+            'program_studi' => 'Teknik Informatika', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Teknik'
+        ],
+        '211050' => [
+            'program_studi' => 'Sistem Informasi', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Ilmu Komputer'
+        ],
+        '201050' => [
+            'program_studi' => 'Sistem Informasi', 
+            'jenjang' => 'S1', 
+            'fakultas' => 'Fakultas Ilmu Komputer'
+        ],
     ];
     
     $nim_prefix = substr($nim, 0, 6);
     
     // Default to first program if pattern not found
     return $programs[$nim_prefix] ?? $programs['221050'];
-}
-
-// Simple sanitize function if not exists
-if (!function_exists('sanitizeInput')) {
-    function sanitizeInput($input) {
-        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-    }
 }
 ?>
 <!DOCTYPE html>
@@ -368,7 +390,7 @@ if (!function_exists('sanitizeInput')) {
     <div class="back-home">
         <a href="index.php">
             <i class="bi bi-arrow-left me-2"></i>
-            Back to Home
+            Kembali ke Beranda
         </a>
     </div>
 
@@ -378,8 +400,8 @@ if (!function_exists('sanitizeInput')) {
                 <div class="text-primary mb-3">
                     <i class="bi bi-mortarboard" style="font-size: 3rem;"></i>
                 </div>
-                <h1>Register</h1>
-                <p>Buat akun dan bergabung dengan UPA Bahasa</p>
+                <h1>Daftar Akun</h1>
+                <p>Buat akun dan bergabung dengan UPA Bahasa UPNVJ</p>
             </div>
 
             <!-- Error Messages -->
@@ -401,7 +423,7 @@ if (!function_exists('sanitizeInput')) {
                         <input class="form-check-input" type="checkbox" id="isAdmin" name="isAdmin" onchange="toggleAdminFields()">
                         <label class="form-check-label" for="isAdmin">
                             <strong>Daftar sebagai Admin</strong>
-                            <small class="d-block text-muted">Ceklis jika mendaftar sebagai admin</small>
+                            <small class="d-block text-muted">Centang jika mendaftar sebagai admin</small>
                         </label>
                     </div>
                 </div>
@@ -415,7 +437,7 @@ if (!function_exists('sanitizeInput')) {
                         name="name" 
                         value="<?= htmlspecialchars($_POST['name'] ?? '') ?>" 
                         required
-                        placeholder="Your full name"
+                        placeholder="Nama lengkap Anda"
                     >
                     <label for="name">
                         <i class="bi bi-person me-2"></i>Nama Lengkap
@@ -431,7 +453,7 @@ if (!function_exists('sanitizeInput')) {
                         name="email" 
                         value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" 
                         required
-                        placeholder="name@upnvj.ac.id"
+                        placeholder="nama@upnvj.ac.id"
                     >
                     <label for="email">
                         <i class="bi bi-envelope me-2"></i>Email
@@ -452,7 +474,7 @@ if (!function_exists('sanitizeInput')) {
                         onblur="validateNim()"
                     >
                     <label for="nim">
-                        <i class="bi bi-card-text me-2"></i>NIM (10 digits)
+                        <i class="bi bi-card-text me-2"></i>NIM (10 digit)
                     </label>
                     <div id="nimValidation" class="nim-validation"></div>
                     <small class="text-muted mt-1">
@@ -468,7 +490,7 @@ if (!function_exists('sanitizeInput')) {
                         class="form-control" 
                         id="registrationCode" 
                         name="registrationCode" 
-                        placeholder="Enter admin registration code"
+                        placeholder="Masukkan kode registrasi admin"
                     >
                     <label for="registrationCode">
                         <i class="bi bi-key me-2"></i>Kode Registrasi Admin
@@ -511,19 +533,19 @@ if (!function_exists('sanitizeInput')) {
 
                 <button type="submit" class="btn btn-register text-white" id="registerBtn">
                     <span class="btn-text">
-                        Register
+                        Daftar Sekarang
                         <i class="bi bi-arrow-right ms-2"></i>
                     </span>
                     <span class="btn-loading d-none">
                         <span class="loading-spinner me-2"></span>
-                        Registering...
+                        Mendaftar...
                     </span>
                 </button>
             </form>
 
             <div class="login-link">
                 <span class="text-muted">Sudah memiliki akun?</span>
-                <a href="login.php" class="ms-1">Login</a>
+                <a href="login.php" class="ms-1">Login di sini</a>
             </div>
         </div>
     </div>
@@ -602,7 +624,7 @@ if (!function_exists('sanitizeInput')) {
 
             nimChecking = true;
             nimValidation.className = 'nim-validation validating';
-            nimValidation.innerHTML = '<span class="loading-spinner me-2"></span>Validating with SIAKAD...';
+            nimValidation.innerHTML = '<span class="loading-spinner me-2"></span>Memvalidasi dengan SIAKAD...';
             nimInput.classList.remove('is-invalid', 'is-valid');
 
             try {
@@ -644,7 +666,7 @@ if (!function_exists('sanitizeInput')) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             if (email && !emailRegex.test(email)) {
-                showFieldError(emailInput, 'Please enter a valid email address');
+                showFieldError(emailInput, 'Silakan masukkan alamat email yang valid');
                 return false;
             } else {
                 clearFieldError(emailInput);
@@ -657,7 +679,7 @@ if (!function_exists('sanitizeInput')) {
             const password = passwordInput.value;
 
             if (password && password.length < 6) {
-                showFieldError(passwordInput, 'Password must be at least 6 characters');
+                showFieldError(passwordInput, 'Password harus minimal 6 karakter');
                 return false;
             } else {
                 clearFieldError(passwordInput);
@@ -672,7 +694,7 @@ if (!function_exists('sanitizeInput')) {
             const confirmPassword = confirmPasswordInput.value;
 
             if (confirmPassword && password !== confirmPassword) {
-                showFieldError(confirmPasswordInput, 'Passwords do not match');
+                showFieldError(confirmPasswordInput, 'Password tidak sama');
                 return false;
             } else {
                 clearFieldError(confirmPasswordInput);
@@ -689,7 +711,7 @@ if (!function_exists('sanitizeInput')) {
             // Validate name
             const name = document.getElementById('name').value.trim();
             if (!name) {
-                showFieldError(document.getElementById('name'), 'Full name is required');
+                showFieldError(document.getElementById('name'), 'Nama lengkap diperlukan');
                 isValid = false;
             }
 
@@ -703,13 +725,13 @@ if (!function_exists('sanitizeInput')) {
             if (!isAdmin) {
                 const nim = document.getElementById('nim').value.trim();
                 if (!nim) {
-                    showFieldError(document.getElementById('nim'), 'NIM is required');
+                    showFieldError(document.getElementById('nim'), 'NIM diperlukan');
                     isValid = false;
                 } else if (!/^\d{10}$/.test(nim)) {
-                    showFieldError(document.getElementById('nim'), 'NIM must be exactly 10 digits');
+                    showFieldError(document.getElementById('nim'), 'NIM harus tepat 10 digit');
                     isValid = false;
                 } else if (!nimValidated) {
-                    showFieldError(document.getElementById('nim'), 'Please wait for NIM validation to complete');
+                    showFieldError(document.getElementById('nim'), 'Silakan tunggu validasi NIM selesai');
                     isValid = false;
                 }
             }
@@ -718,7 +740,7 @@ if (!function_exists('sanitizeInput')) {
             if (isAdmin) {
                 const code = document.getElementById('registrationCode').value.trim();
                 if (!code) {
-                    showFieldError(document.getElementById('registrationCode'), 'Registration code is required for admin accounts');
+                    showFieldError(document.getElementById('registrationCode'), 'Kode registrasi diperlukan untuk akun admin');
                     isValid = false;
                 }
             }
