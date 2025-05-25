@@ -271,14 +271,14 @@ $available_dates = $stmt->fetchAll();
                                                         <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
                                                         <small class="text-muted">
                                                             NIM: <?= htmlspecialchars($reg['nim']) ?><br>
-                                                            <?= htmlspecialchars($reg['program_studi']) ?> - <?= htmlspecialchars($reg['jenjang']) ?>
+                                                            <?= htmlspecialchars($reg['program']) ?> - <?= htmlspecialchars($reg['level']) ?>
                                                         </small>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <small>
                                                         <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($reg['no_telpon'] ?? 'N/A') ?><br>
-                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['fakultas']) ?>
+                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['faculty']) ?>
                                                     </small>
                                                 </td>
                                                 <td>
@@ -286,7 +286,7 @@ $available_dates = $stmt->fetchAll();
                                                     <small class="text-muted"><?= date('l', strtotime($reg['test_date'])) ?></small>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span>
+                                                    <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
                                                 </td>
                                                 <td>
                                                     <code class="bg-light p-1 rounded"><?= htmlspecialchars($reg['billing_number']) ?></code>
@@ -374,7 +374,7 @@ $available_dates = $stmt->fetchAll();
                         
                         <div class="mb-3">
                             <label class="form-label">Keperluan</label>
-                            <select class="form-select" name="keperluan" id="edit_keperluan" required>
+                            <select class="form-select" name="purpose" id="edit_purpose" required>
                                 <option value="Skripsi/Tesis/Tugas Akhir">Skripsi/Tesis/Tugas Akhir</option>
                                 <option value="Yudisium">Yudisium</option>
                                 <option value="Kelulusan">Kelulusan</option>
@@ -501,9 +501,9 @@ $available_dates = $stmt->fetchAll();
                             <table class="table table-sm">
                                 <tr><td><strong>Nama:</strong></td><td>${registration.name}</td></tr>
                                 <tr><td><strong>NIM:</strong></td><td>${registration.nim}</td></tr>
-                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program_studi}</td></tr>
-                                <tr><td><strong>Jenjang:</strong></td><td>${registration.jenjang}</td></tr>
-                                <tr><td><strong>Fakultas:</strong></td><td>${registration.fakultas}</td></tr>
+                                <tr><td><strong>Program Studi:</strong></td><td>${registration.program}</td></tr>
+                                <tr><td><strong>Jenjang:</strong></td><td>${registration.level}</td></tr>
+                                <tr><td><strong>Fakultas:</strong></td><td>${registration.faculty}</td></tr>
                                 <tr><td><strong>No. Telepon:</strong></td><td>${registration.no_telpon || 'N/A'}</td></tr>
                             </table>
                         </div>
@@ -512,7 +512,7 @@ $available_dates = $stmt->fetchAll();
                             <table class="table table-sm">
                                 <tr><td><strong>Tanggal Daftar:</strong></td><td>${new Date(registration.created_at).toLocaleDateString('id-ID')}</td></tr>
                                 <tr><td><strong>Tanggal Tes:</strong></td><td>${new Date(registration.test_date).toLocaleDateString('id-ID')}</td></tr>
-                                <tr><td><strong>Keperluan:</strong></td><td>${registration.keperluan}</td></tr>
+                                <tr><td><strong>Keperluan:</strong></td><td>${registration.purpose}</td></tr>
                                 <tr><td><strong>Billing Number:</strong></td><td><code>${registration.billing_number}</code></td></tr>
                                 <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(registration.payment_status)}">${registration.payment_status.toUpperCase()}</span></td></tr>
                                 <tr><td><strong>Update Terakhir:</strong></td><td>${new Date(registration.updated_at).toLocaleDateString('id-ID')}</td></tr>
@@ -531,7 +531,7 @@ $available_dates = $stmt->fetchAll();
                 
                 document.getElementById('edit_registration_id').value = registration.id;
                 document.getElementById('edit_test_date').value = registration.test_date;
-                document.getElementById('edit_keperluan').value = registration.keperluan;
+                document.getElementById('edit_purpose').value = registration.purpose;
                 document.getElementById('edit_payment_status').value = registration.payment_status;
             });
 

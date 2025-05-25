@@ -108,11 +108,11 @@ try {
     // Purpose distribution
     $stmt = $pdo->query("
         SELECT 
-            keperluan,
+            purpose,
             COUNT(*) as count
         FROM elpt_registrations 
         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
-        GROUP BY keperluan
+        GROUP BY purpose
         ORDER BY count DESC
     ");
     $purpose_distribution = $stmt->fetchAll();
@@ -123,7 +123,7 @@ try {
             'registration' as type,
             u.name,
             r.created_at as timestamp,
-            CONCAT('Daftar ELPT - ', r.keperluan) as description
+            CONCAT('Daftar ELPT - ', r.purpose) as description
         FROM elpt_registrations r
         JOIN users u ON r.user_id = u.id
         ORDER BY r.created_at DESC

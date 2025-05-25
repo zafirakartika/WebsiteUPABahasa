@@ -16,9 +16,9 @@ CREATE TABLE `users` (
   `password` varchar(255) NOT NULL,
   `nim` varchar(10) DEFAULT NULL,
   `role` enum('admin','student') NOT NULL DEFAULT 'student',
-  `program_studi` varchar(100) DEFAULT NULL,
-  `fakultas` varchar(100) DEFAULT NULL,
-  `jenjang` enum('D3','S1','S2','S3') DEFAULT NULL,
+  `program` varchar(100) DEFAULT NULL,
+  `faculty` varchar(100) DEFAULT NULL,
+  `level` enum('D3','S1','S2','S3') DEFAULT NULL,
   `no_telpon` varchar(20) DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -33,7 +33,7 @@ CREATE TABLE `elpt_registrations` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `test_date` date NOT NULL,
-  `keperluan` varchar(100) NOT NULL,
+  `purpose` varchar(100) NOT NULL,
   `payment_status` enum('pending','confirmed','rejected') DEFAULT 'pending',
   `billing_number` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -276,8 +276,8 @@ ALTER TABLE `notifications`
 -- --------------------------------------------------------
 
 INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VALUES
-('elpt_fee', '100000', 'ELPT test fee in IDR'),
-('course_fee', '750000', 'Course preparation fee in IDR'),
+('elpt_fee', '75000', 'ELPT test fee in IDR'),
+('course_fee', '850000', 'Course preparation fee in IDR'),
 ('min_passing_score', '450', 'Minimum score to pass ELPT'),
 ('max_participants_per_session', '30', 'Maximum participants per test session'),
 ('admin_registration_code', 'ADMIN123', 'Code required for admin registration'),
@@ -289,7 +289,7 @@ INSERT INTO `system_settings` (`setting_key`, `setting_value`, `description`) VA
 -- Insert default admin user
 -- --------------------------------------------------------
 
-INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program_studi`, `fakultas`, `jenjang`, `is_active`) VALUES
+INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program`, `faculty`, `level`, `is_active`) VALUES
 ('Admin UPA Bahasa', 'admin@upabahasa.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', NULL, 'admin', NULL, NULL, NULL, 1);
 
 -- Password for admin is: password
@@ -298,7 +298,7 @@ INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program_studi`
 -- Insert demo student users
 -- --------------------------------------------------------
 
-INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program_studi`, `fakultas`, `jenjang`, `is_active`) VALUES
+INSERT INTO `users` (`name`, `email`, `password`, `nim`, `role`, `program`, `faculty`, `level`, `is_active`) VALUES
 ('Budi Santoso', 'budi@student.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2110511032', 'student', 'Hubungan Internasional', 'Fakultas Ilmu Sosial dan Ilmu Politik', 'S1', 1),
 ('Zafira Kartika', 'zafira@student.upnvj.ac.id', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '2210501071', 'student', 'Sistem Informasi', 'Fakultas Ilmu Komputer', 'D3', 1);
 

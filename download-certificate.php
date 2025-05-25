@@ -14,8 +14,8 @@ if (!$result_id || !is_numeric($result_id)) {
 try {
     // Get test result with user data
     $stmt = $pdo->prepare("
-        SELECT r.*, u.name, u.nim, u.program_studi, u.fakultas, u.jenjang,
-               reg.keperluan, reg.test_date as registration_date
+        SELECT r.*, u.name, u.nim, u.program, u.faculty, u.level,
+               reg.purpose, reg.test_date as registration_date
         FROM elpt_results r 
         JOIN users u ON r.user_id = u.id 
         JOIN elpt_registrations reg ON r.registration_id = reg.id
@@ -298,8 +298,8 @@ function generateCertificatePDF($result) {
                 
                 <div class="student-info">
                     <strong>NIM:</strong> ' . htmlspecialchars($result['nim']) . '<br>
-                    <strong>Program Studi:</strong> ' . htmlspecialchars($result['program_studi']) . ' - ' . htmlspecialchars($result['jenjang']) . '<br>
-                    <strong>Fakultas:</strong> ' . htmlspecialchars($result['fakultas']) . '
+                    <strong>Program Studi:</strong> ' . htmlspecialchars($result['program']) . ' - ' . htmlspecialchars($result['level']) . '<br>
+                    <strong>Fakultas:</strong> ' . htmlspecialchars($result['faculty']) . '
                 </div>
                 
                 <div class="achievement-text">
@@ -345,7 +345,7 @@ function generateCertificatePDF($result) {
                 <div class="signatures">
                     <div class="signature">
                         <div class="signature-line">
-                            Dr. [Nama Kepala UPA]
+                            Dr. Ayunita Ajengtiyas Saputri Mashuri
                         </div>
                         <div class="signature-title">
                             Kepala UPA Bahasa UPNVJ

@@ -6,8 +6,8 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 // System constants
-define('ELPT_FEE', 100000);
-define('COURSE_FEE', 750000);
+define('ELPT_FEE', 75000);
+define('COURSE_FEE', 850000);
 define('MIN_PASSING_SCORE', 450);
 
 // Error reporting for debugging (remove in production)

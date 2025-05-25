@@ -266,20 +266,20 @@ while ($row = $stmt->fetch()) {
                                                         <strong><?= htmlspecialchars($reg['name']) ?></strong><br>
                                                         <small class="text-muted">
                                                             NIM: <?= htmlspecialchars($reg['nim']) ?><br>
-                                                            <?= htmlspecialchars($reg['program_studi']) ?> - <?= htmlspecialchars($reg['jenjang']) ?>
+                                                            <?= htmlspecialchars($reg['program']) ?> - <?= htmlspecialchars($reg['level']) ?>
                                                         </small>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <small>
                                                         <i class="bi bi-telephone me-1"></i><?= htmlspecialchars($reg['no_telpon'] ?? 'N/A') ?><br>
-                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['fakultas']) ?>
+                                                        <i class="bi bi-building me-1"></i><?= htmlspecialchars($reg['faculty']) ?>
                                                     </small>
                                                 </td>
                                                 <td>
                                                     <div>
                                                         <strong><?= formatDate($reg['test_date']) ?></strong><br>
-                                                        <span class="badge bg-info"><?= htmlspecialchars($reg['keperluan']) ?></span>
+                                                        <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
                                                     </div>
                                                 </td>
                                                 <td>

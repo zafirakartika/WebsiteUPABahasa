@@ -14,8 +14,8 @@ if (!$result_id || !is_numeric($result_id)) {
 try {
     // Get test result with user data
     $stmt = $pdo->prepare("
-        SELECT r.*, u.name, u.nim, u.program_studi, u.fakultas, u.jenjang,
-               reg.keperluan, reg.test_date as registration_date
+        SELECT r.*, u.name, u.nim, u.program, u.faculty, u.level,
+               reg.purpose, reg.test_date as registration_date
         FROM elpt_results r 
         JOIN users u ON r.user_id = u.id 
         JOIN elpt_registrations reg ON r.registration_id = reg.id
@@ -226,8 +226,8 @@ function generateCertificateHTML($result) {
                 
                 <div class="student-info">
                     NIM: ' . $result['nim'] . '<br>
-                    ' . $result['program_studi'] . ' - ' . $result['jenjang'] . '<br>
-                    ' . $result['fakultas'] . '
+                    ' . $result['program'] . ' - ' . $result['level'] . '<br>
+                    ' . $result['faculty'] . '
                 </div>
                 
                 <div class="achievement-text">

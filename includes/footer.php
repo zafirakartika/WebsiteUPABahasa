@@ -15,7 +15,7 @@
                     Meningkatkan kemampuan bahasa Inggris mahasiswa melalui tes ELPT dan kursus persiapan.
                 </p>
                 <div class="d-flex gap-3">
-                    <a href="https://www.instagram.com/upnvj_official/" class="text-light">
+                    <a href="https://www.instagram.com/upnveteranjakarta/" class="text-light">
                         <i class="bi bi-instagram" style="font-size: 1.5rem;"></i>
                     </a>
                     <a href="https://www.facebook.com/upnvj.official" class="text-light">

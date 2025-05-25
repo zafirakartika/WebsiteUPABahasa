@@ -13,7 +13,8 @@ $pending_registration = $stmt->fetch();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
     $test_date = $_POST['test_date'] ?? '';
-    $keperluan = $_POST['purpose'] ?? '';
+    // Keep as 'purpose' to match database column and backend processing
+    $purpose = $_POST['purpose'] ?? '';
     
     // Validation
     if (empty($test_date)) {
@@ -44,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
         }
     }
     
-    if (empty($keperluan)) {
+    if (empty($purpose)) {
         $errors[] = 'Keperluan harus dipilih';
     }
     
@@ -53,8 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
         try {
             $billing_number = generateBillingNumber();
             
+            // Use 'purpose' to match the database column name
             $stmt = $pdo->prepare("INSERT INTO elpt_registrations (user_id, test_date, purpose, billing_number) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$_SESSION['user_id'], $test_date, $keperluan, $billing_number]);
+            $stmt->execute([$_SESSION['user_id'], $test_date, $purpose, $billing_number]);
             
             showAlert('Pendaftaran berhasil! Silakan lakukan pembayaran dengan billing number: ' . $billing_number, 'success');
             header('Location: dashboard.php');
@@ -137,6 +139,11 @@ while ($start_date <= $end_date) {
             background-color: #f8f9fa;
             color: #6c757d;
             cursor: not-allowed;
+        }
+        .form-check-selected {
+            background-color: #f8f9ff;
+            border-radius: 8px;
+            border: 1px solid #667eea;
         }
     </style>
 </head>
@@ -231,7 +238,7 @@ while ($start_date <= $end_date) {
                                         </div>
                                     <?php endif; ?>
 
-                                    <form method="POST">
+                                    <form method="POST" id="registrationForm">
                                         <!-- Date Selection -->
                                         <div class="mb-4">
                                             <h5 class="mb-3">Pilih Tanggal Tes</h5>
@@ -241,7 +248,7 @@ while ($start_date <= $end_date) {
                                                         <div class="date-option p-3 <?= !$date['available'] ? 'unavailable' : '' ?>" 
                                                              onclick="<?= $date['available'] ? "selectDate('{$date['date']}')" : '' ?>">
                                                             <input type="radio" name="test_date" value="<?= $date['date'] ?>" 
-                                                                   class="d-none" <?= !$date['available'] ? 'disabled' : '' ?>>
+                                                                   class="d-none" <?= !$date['available'] ? 'disabled' : '' ?> required>
                                                             <div class="fw-bold"><?= $date['formatted'] ?></div>
                                                             <small class="<?= $date['available'] ? 'text-success' : 'text-danger' ?>">
                                                                 <?= $date['available'] ? 
@@ -254,7 +261,6 @@ while ($start_date <= $end_date) {
                                             </div>
                                         </div>
 
-                                        <!-- Purpose Selection -->
                                         <div class="mb-4">
                                             <label class="form-label fw-bold">Keperluan</label>
                                             <div class="row g-3">
@@ -270,11 +276,13 @@ while ($start_date <= $end_date) {
                                                 foreach ($purposes as $purpose): 
                                                 ?>
                                                     <div class="col-md-6">
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="radio" name="keperluan" 
-                                                                   value="<?= $purpose ?>" id="purpose_<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>">
-                                                            <label class="form-check-label" for="purpose_<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>">
-                                                                <?= $purpose ?>
+                                                        <div class="form-check p-3">
+                                                            <input class="form-check-input" type="radio" name="purpose" 
+                                                                   value="<?= htmlspecialchars($purpose) ?>" 
+                                                                   id="purpose_<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>" 
+                                                                   required>
+                                                            <label class="form-check-label fw-medium" for="purpose_<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>">
+                                                                <?= htmlspecialchars($purpose) ?>
                                                             </label>
                                                         </div>
                                                     </div>
@@ -283,7 +291,7 @@ while ($start_date <= $end_date) {
                                         </div>
 
                                         <div class="text-end">
-                                            <button type="submit" class="btn btn-primary btn-lg">
+                                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                                                 <i class="bi bi-calendar-plus me-2"></i>Daftar ELPT
                                             </button>
                                         </div>
@@ -312,8 +320,8 @@ while ($start_date <= $end_date) {
                                     <ul class="small text-muted">
                                         <li>Pendaftaran minimal H+1 dari tanggal daftar</li>
                                         <li>Maksimal 30 peserta per sesi</li>
-                                        <li>Biaya tes: Rp 100.000</li>
-                                        <li>Skor minimum kelulusan: 450</li>
+                                        <li>Biaya tes: <?= formatCurrency(ELPT_FEE) ?></li>
+                                        <li>Skor minimum kelulusan: <?= MIN_PASSING_SCORE ?></li>
                                         <li>Hasil tes keluar 3-5 hari kerja</li>
                                     </ul>
                                     
@@ -382,21 +390,64 @@ while ($start_date <= $end_date) {
             event.currentTarget.querySelector('input[type="radio"]').checked = true;
         }
         
-        // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // Enhanced form validation with visual feedback
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
             const testDate = document.querySelector('input[name="test_date"]:checked');
-            const keperluan = document.querySelector('input[name="keperluan"]:checked');
+            const purpose = document.querySelector('input[name="purpose"]:checked');
+            
+            let hasErrors = false;
+            let errorMessage = '';
             
             if (!testDate) {
-                alert('Silakan pilih tanggal tes');
-                e.preventDefault();
-                return;
+                errorMessage += 'Silakan pilih tanggal tes.\n';
+                hasErrors = true;
             }
             
-            if (!keperluan) {
-                alert('Silakan pilih keperluan tes');
+            if (!purpose) {
+                errorMessage += 'Silakan pilih keperluan tes.\n';
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                alert(errorMessage.trim());
                 e.preventDefault();
-                return;
+                return false;
+            }
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+            submitBtn.disabled = true;
+            
+            // Re-enable button after 10 seconds as fallback
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 10000);
+        });
+        
+        // Add visual feedback for purpose selection
+        document.querySelectorAll('input[name="purpose"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove previous selection styling
+                document.querySelectorAll('.form-check').forEach(check => {
+                    check.classList.remove('form-check-selected');
+                });
+                
+                // Add styling to selected option
+                if (this.checked) {
+                    this.closest('.form-check').classList.add('form-check-selected');
+                }
+            });
+        });
+        
+        // Debug: Log form data before submission
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const formData = new FormData(this);
+            console.log('Form submission data:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key + ': ' + value);
             }
         });
     </script>

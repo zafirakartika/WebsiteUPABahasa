@@ -118,12 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $stmt = $pdo->prepare("
                     INSERT INTO users 
-                    (name, email, password, nim, role, program_studi, fakultas, jenjang) 
+                    (name, email, password, nim, role, program, faculty, level) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $name, $email, $hashed_password, $nim, $role,
-                    $siakad_data['program_studi'], $siakad_data['fakultas'], $siakad_data['jenjang']
+                    $siakad_data['program'], $siakad_data['faculty'], $siakad_data['level']
                 ]);
             }
             
@@ -179,34 +179,34 @@ function getSiakadData($nim) {
     // Simulate different programs based on NIM pattern
     $programs = [
         '221050' => [
-            'program_studi' => 'Sistem Informasi', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Ilmu Komputer'
+            'program' => 'Sistem Informasi', 
+            'level' => 'D3', 
+            'faculty' => 'Fakultas Ilmu Komputer'
         ],
         '221051' => [
-            'program_studi' => 'Hubungan Internasional', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Ilmu Sosial dan Ilmu Politik'
+            'program' => 'Hubungan Internasional', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Sosial dan Ilmu Politik'
         ],
         '221052' => [
-            'program_studi' => 'Manajemen', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Ekonomi dan Bisnis'
+            'program' => 'Manajemen', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ekonomi dan Bisnis'
         ],
         '221053' => [
-            'program_studi' => 'Teknik Informatika', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Teknik'
+            'program' => 'Teknik Informatika', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Teknik'
         ],
         '211050' => [
-            'program_studi' => 'Sistem Informasi', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Ilmu Komputer'
+            'program' => 'Sistem Informasi', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Komputer'
         ],
-        '201050' => [
-            'program_studi' => 'Sistem Informasi', 
-            'jenjang' => 'S1', 
-            'fakultas' => 'Fakultas Ilmu Komputer'
+        '201051' => [
+            'program' => 'Sistem Informasi', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Komputer'
         ],
     ];
     

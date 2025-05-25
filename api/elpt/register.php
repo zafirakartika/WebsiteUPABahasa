@@ -34,7 +34,7 @@ if (!$input) {
 }
 
 $test_date = $input['test_date'] ?? '';
-$keperluan = $input['keperluan'] ?? '';
+$purpose = $input['purpose'] ?? '';
 $time_slot = $input['time_slot'] ?? '';
 
 // Validation
@@ -44,8 +44,8 @@ if (empty($test_date)) {
     $errors[] = 'Test date is required';
 }
 
-if (empty($keperluan)) {
-    $errors[] = 'Purpose (keperluan) is required';
+if (empty($purpose)) {
+    $errors[] = 'Purpose is required';
 }
 
 // Validate test date
@@ -124,14 +124,14 @@ try {
     // Insert registration
     $stmt = $pdo->prepare("
         INSERT INTO elpt_registrations 
-        (user_id, test_date, keperluan, billing_number, payment_status) 
+        (user_id, test_date, purpose, billing_number, payment_status) 
         VALUES (?, ?, ?, ?, 'pending')
     ");
     
     $stmt->execute([
         $_SESSION['user_id'],
         $test_date,
-        $keperluan,
+        $purpose,
         $billing_number
     ]);
     
@@ -162,7 +162,7 @@ try {
             'registration_id' => $registration_id,
             'billing_number' => $billing_number,
             'test_date' => $test_date,
-            'keperluan' => $keperluan,
+            'purpose' => $purpose,
             'payment_amount' => ELPT_FEE,
             'payment_status' => 'pending',
             'slots_remaining' => $max_participants - $registration_count['count'] - 1

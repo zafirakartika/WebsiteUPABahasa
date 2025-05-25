@@ -403,8 +403,7 @@ while ($start_date <= $end_date) {
                                     <ul class="small mb-0">
                                         <li>Wajib hadir minimal 80% dari total sesi</li>
                                         <li>Final test dilaksanakan sesuai jadwal yang dipilih</li>
-                                        <li>Biaya kursus: Rp 750.000 (24 sesi)</li>
-                                        <li>Pembayaran dapat dicicil 2x</li>
+                                        <li>Biaya kursus: Rp 850.000 (24 sesi)</li>
                                         <li>Sertifikat diberikan jika lulus final test</li>
                                     </ul>
                                 </div>
