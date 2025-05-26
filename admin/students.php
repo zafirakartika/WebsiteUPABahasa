@@ -42,6 +42,88 @@ if (isset($_GET['action'])) {
     exit;
 }
 
+// Handle student update (including course status)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_student') {
+    $student_id = $_POST['student_id'] ?? null;
+    $name = sanitizeInput($_POST['name'] ?? '');
+    $email = sanitizeInput($_POST['email'] ?? '');
+    $nim = sanitizeInput($_POST['nim'] ?? '');
+    $program = sanitizeInput($_POST['program'] ?? '');
+    $faculty = sanitizeInput($_POST['faculty'] ?? '');
+    $level = $_POST['level'] ?? '';
+    $no_telpon = sanitizeInput($_POST['no_telpon'] ?? '');
+    $is_active = isset($_POST['is_active']) ? 1 : 0;
+    
+    // Course data
+    $course_status = $_POST['course_status'] ?? '';
+    $current_session = intval($_POST['current_session'] ?? 0);
+    $total_sessions = intval($_POST['total_sessions'] ?? 24);
+    $final_test_date = $_POST['final_test_date'] ?? null;
+    
+    $errors = [];
+    
+    // Validation
+    if (empty($name)) $errors[] = 'Nama tidak boleh kosong';
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email tidak valid';
+    if (empty($nim)) $errors[] = 'NIM tidak boleh kosong';
+    if ($current_session < 0 || $current_session > $total_sessions) $errors[] = 'Sesi saat ini tidak valid';
+    
+    if (empty($errors)) {
+        try {
+            $pdo->beginTransaction();
+            
+            // Update user data
+            $stmt = $pdo->prepare("
+                UPDATE users SET 
+                name = ?, email = ?, nim = ?, program = ?, faculty = ?, level = ?, no_telpon = ?, is_active = ?
+                WHERE id = ? AND role = 'student'
+            ");
+            $stmt->execute([$name, $email, $nim, $program, $faculty, $level, $no_telpon, $is_active, $student_id]);
+            
+            // Handle course data
+            if (!empty($course_status)) {
+                // Check if course record exists
+                $stmt = $pdo->prepare("SELECT id FROM courses WHERE user_id = ?");
+                $stmt->execute([$student_id]);
+                $course_exists = $stmt->fetch();
+                
+                if ($course_exists) {
+                    // Update existing course
+                    $stmt = $pdo->prepare("
+                        UPDATE courses SET 
+                        current_session = ?, total_sessions = ?, final_test_date = ?, status = ?
+                        WHERE user_id = ?
+                    ");
+                    $stmt->execute([$current_session, $total_sessions, $final_test_date, $course_status, $student_id]);
+                } else {
+                    // Insert new course record
+                    $stmt = $pdo->prepare("
+                        INSERT INTO courses (user_id, current_session, total_sessions, final_test_date, status)
+                        VALUES (?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$student_id, $current_session, $total_sessions, $final_test_date, $course_status]);
+                }
+            } else {
+                // If course_status is empty, delete course record
+                $stmt = $pdo->prepare("DELETE FROM courses WHERE user_id = ?");
+                $stmt->execute([$student_id]);
+            }
+            
+            $pdo->commit();
+            showAlert('Data mahasiswa berhasil diperbarui', 'success');
+            
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            showAlert('Terjadi kesalahan: ' . $e->getMessage(), 'error');
+        }
+    } else {
+        showAlert(implode('<br>', $errors), 'error');
+    }
+    
+    header('Location: students.php');
+    exit;
+}
+
 // Get students with filters
 $filter_fakultas = $_GET['faculty'] ?? '';
 $filter_jenjang = $_GET['level'] ?? '';
@@ -54,10 +136,11 @@ $sql = "
            COUNT(DISTINCT res.id) as total_results,
            MAX(res.total_score) as best_score,
            COUNT(DISTINCT CASE WHEN res.is_passed = 1 THEN res.id END) as passed_tests,
-           (SELECT c.status FROM courses c WHERE c.user_id = u.id ORDER BY c.created_at DESC LIMIT 1) as course_status
+           c.id as course_id, c.status as course_status, c.current_session, c.total_sessions, c.final_test_date
     FROM users u 
     LEFT JOIN elpt_registrations er ON u.id = er.user_id
     LEFT JOIN elpt_results res ON u.id = res.user_id
+    LEFT JOIN courses c ON u.id = c.user_id
     WHERE u.role = 'student'
 ";
 
@@ -126,12 +209,12 @@ $stats['new_today'] = $stmt->fetch()['count'];
             min-height: 100vh;
             background: linear-gradient(180deg, #dc3545 0%, #6f42c1 100%);
         }
-        .nav-link {
+        .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8) !important;
             border-radius: 10px;
             margin: 5px 0;
         }
-        .nav-link:hover, .nav-link.active {
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
             background: rgba(255, 255, 255, 0.2);
             color: white !important;
         }
@@ -152,6 +235,83 @@ $stats['new_today'] = $stmt->fetch()['count'];
         }
         .progress-small {
             height: 6px;
+        }
+        
+        /* Enhanced Tab Styling - Modern Clean Design */
+        .nav-tabs {
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+            padding: 5px;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-radius: 8px;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 12px 20px;
+            margin-right: 5px;
+            background-color: transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: #ffffff;
+            color: #495057;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #495057;
+            background-color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        
+        .nav-tabs .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+        
+        .nav-tabs .nav-link i {
+            margin-right: 8px;
+            font-size: 1.1em;
+        }
+        
+        /* Tab content styling - Clean Design */
+        .tab-content {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        /* Course progress styling */
+        #course_progress_container .progress {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            height: 30px;
+        }
+        
+        #course_progress_container .progress-bar {
+            border-radius: 8px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(45deg, #28a745, #20c997);
         }
     </style>
 </head>
@@ -265,7 +425,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Jenjang</label>
-                                <select name="jenjang" class="form-select">
+                                <select name="level" class="form-select">
                                     <option value="">Semua Jenjang</option>
                                     <?php foreach ($jenjang_options as $jenjang): ?>
                                         <option value="<?= $jenjang ?>" <?= $filter_jenjang === $jenjang ? 'selected' : '' ?>>
@@ -276,7 +436,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Fakultas</label>
-                                <select name="fakultas" class="form-select">
+                                <select name="faculty" class="form-select">
                                     <option value="">Semua Fakultas</option>
                                     <?php foreach ($fakultas_options as $fakultas): ?>
                                         <option value="<?= $fakultas ?>" <?= $filter_fakultas === $fakultas ? 'selected' : '' ?>>
@@ -383,12 +543,18 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                                 </td>
                                                 <td>
                                                     <?php if ($student['course_status']): ?>
-                                                        <span class="badge <?= 
-                                                            $student['course_status'] === 'completed' ? 'bg-success' : 
-                                                            ($student['course_status'] === 'active' ? 'bg-primary' : 'bg-warning text-dark') 
-                                                        ?>">
-                                                            <?= strtoupper($student['course_status']) ?>
-                                                        </span>
+                                                        <div>
+                                                            <span class="badge <?= 
+                                                                $student['course_status'] === 'completed' ? 'bg-success' : 
+                                                                ($student['course_status'] === 'active' ? 'bg-primary' : 'bg-warning text-dark') 
+                                                            ?>">
+                                                                <?= strtoupper($student['course_status']) ?>
+                                                            </span>
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                Sesi: <?= $student['current_session'] ?>/<?= $student['total_sessions'] ?>
+                                                            </small>
+                                                        </div>
                                                     <?php else: ?>
                                                         <span class="text-muted">Belum Ikut</span>
                                                     <?php endif; ?>
@@ -469,6 +635,144 @@ $stats['new_today'] = $stmt->fetch()['count'];
         </div>
     </div>
 
+    <!-- Edit Student Modal -->
+    <div class="modal fade" id="editStudentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil me-2"></i>Edit Data Mahasiswa
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" id="editStudentForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="update_student">
+                        <input type="hidden" name="student_id" id="edit_student_id">
+                        
+                        <!-- Enhanced Tab Navigation -->
+                        <ul class="nav nav-tabs" id="editTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="student-info-tab" data-bs-toggle="tab" data-bs-target="#student-info" type="button" role="tab">
+                                    <i class="bi bi-person-circle"></i>Data Mahasiswa
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="course-info-tab" data-bs-toggle="tab" data-bs-target="#course-info" type="button" role="tab">
+                                    <i class="bi bi-book-half"></i>Status Kursus
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content mt-3" id="editTabsContent">
+                            <!-- Student Info Tab -->
+                            <div class="tab-pane fade show active" id="student-info" role="tabpanel">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nama Lengkap</label>
+                                        <input type="text" class="form-control" name="name" id="edit_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email</label>
+                                        <input type="email" class="form-control" name="email" id="edit_email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">NIM</label>
+                                        <input type="text" class="form-control" name="nim" id="edit_nim" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">No. Telepon</label>
+                                        <input type="text" class="form-control" name="no_telpon" id="edit_no_telpon">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Jenjang</label>
+                                        <select class="form-select" name="level" id="edit_level" required>
+                                            <option value="">Pilih Jenjang</option>
+                                            <option value="D3">D3</option>
+                                            <option value="S1">S1</option>
+                                            <option value="S2">S2</option>
+                                            <option value="S3">S3</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Program Studi</label>
+                                        <input type="text" class="form-control" name="program" id="edit_program" required>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Fakultas</label>
+                                        <input type="text" class="form-control" name="faculty" id="edit_faculty" required>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active">
+                                            <label class="form-check-label" for="edit_is_active">
+                                                Mahasiswa Aktif
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Course Info Tab -->
+                            <div class="tab-pane fade" id="course-info" role="tabpanel">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Status Kursus</label>
+                                        <select class="form-select" name="course_status" id="edit_course_status">
+                                            <option value="">Tidak Mengikuti Kursus</option>
+                                            <option value="pending">Pending</option>
+                                            <option value="active">Active</option>
+                                            <option value="completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Total Sesi</label>
+                                        <input type="number" class="form-control" name="total_sessions" id="edit_total_sessions" min="1" max="50" value="24">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Sesi Saat Ini</label>
+                                        <input type="number" class="form-control" name="current_session" id="edit_current_session" min="0" max="50" value="1">
+                                        <small class="text-muted">Sesi yang telah diselesaikan</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tanggal Final Test</label>
+                                        <input type="date" class="form-control" name="final_test_date" id="edit_final_test_date">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <h6><i class="bi bi-info-circle me-2"></i>Panduan Status Kursus:</h6>
+                                            <ul class="mb-0">
+                                                <li><strong>Pending:</strong> Mahasiswa telah mendaftar tapi belum mulai kursus</li>
+                                                <li><strong>Active:</strong> Mahasiswa sedang mengikuti kursus</li>
+                                                <li><strong>Completed:</strong> Mahasiswa telah menyelesaikan semua sesi kursus</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="col-md-12" id="course_progress_container" style="display: none;">
+                                        <label class="form-label">Progress Kursus</label>
+                                        <div class="progress" style="height: 25px;">
+                                            <div class="progress-bar bg-success" role="progressbar" id="course_progress_bar" style="width: 0%">
+                                                <span id="course_progress_text">0/24</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-save me-2"></i>Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -526,12 +830,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                         <tr><td><strong>Program Studi:</strong></td><td>${student.program}</td></tr>
                                         <tr><td><strong>Jenjang:</strong></td><td>${student.level}</td></tr>
                                         <tr><td><strong>Fakultas:</strong></td><td>${student.faculty}</td></tr>
-                                        <tr><td><strong>Status Kursus:</strong></td><td>
-                                            ${student.course_status ? 
-                                                `<span class="badge bg-primary">${student.course_status.toUpperCase()}</span>` : 
-                                                '<span class="text-muted">Belum Ikut</span>'
-                                            }
-                                        </td></tr>
                                     </table>
                                 </div>
                             </div>
@@ -557,9 +855,140 @@ $stats['new_today'] = $stmt->fetch()['count'];
                             </div>
                         </div>
                     </div>
+                    
+                    ${student.course_status ? `
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Status Kursus</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <strong>Status:</strong><br>
+                                            <span class="badge ${getStatusBadgeClass(student.course_status)}">${student.course_status.toUpperCase()}</span>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Progress:</strong><br>
+                                            ${student.current_session}/${student.total_sessions} sesi
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Persentase:</strong><br>
+                                            ${Math.round((student.current_session / student.total_sessions) * 100)}%
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>Final Test:</strong><br>
+                                            ${student.final_test_date ? new Date(student.final_test_date).toLocaleDateString('id-ID') : 'Belum dijadwalkan'}
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" style="width: ${(student.current_session / student.total_sessions) * 100}%">
+                                                ${Math.round((student.current_session / student.total_sessions) * 100)}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 `;
                 
                 document.getElementById('studentDetailContent').innerHTML = content;
+            });
+
+            // Edit Student Modal Handler
+            $('#editStudentModal').on('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const student = JSON.parse(button.getAttribute('data-student'));
+                
+                // Populate student data
+                document.getElementById('edit_student_id').value = student.id;
+                document.getElementById('edit_name').value = student.name;
+                document.getElementById('edit_email').value = student.email;
+                document.getElementById('edit_nim').value = student.nim;
+                document.getElementById('edit_no_telpon').value = student.no_telpon || '';
+                document.getElementById('edit_level').value = student.level || '';
+                document.getElementById('edit_program').value = student.program || '';
+                document.getElementById('edit_faculty').value = student.faculty || '';
+                document.getElementById('edit_is_active').checked = student.is_active == 1;
+                
+                // Populate course data
+                document.getElementById('edit_course_status').value = student.course_status || '';
+                document.getElementById('edit_current_session').value = student.current_session || 1;
+                document.getElementById('edit_total_sessions').value = student.total_sessions || 24;
+                document.getElementById('edit_final_test_date').value = student.final_test_date || '';
+                
+                // Update progress display
+                updateCourseProgress();
+            });
+
+            // Course status change handler
+            $('#edit_course_status, #edit_current_session, #edit_total_sessions').on('input change', function() {
+                updateCourseProgress();
+            });
+
+            // Function to update course progress display
+            function updateCourseProgress() {
+                const status = document.getElementById('edit_course_status').value;
+                const current = parseInt(document.getElementById('edit_current_session').value) || 0;
+                const total = parseInt(document.getElementById('edit_total_sessions').value) || 24;
+                const progressContainer = document.getElementById('course_progress_container');
+                const progressBar = document.getElementById('course_progress_bar');
+                const progressText = document.getElementById('course_progress_text');
+                
+                if (status && status !== '') {
+                    progressContainer.style.display = 'block';
+                    const percentage = Math.round((current / total) * 100);
+                    progressBar.style.width = percentage + '%';
+                    progressText.textContent = current + '/' + total;
+                    
+                    // Update progress bar color based on status
+                    progressBar.className = 'progress-bar ';
+                    if (status === 'completed') {
+                        progressBar.className += 'bg-success';
+                    } else if (status === 'active') {
+                        progressBar.className += 'bg-primary';
+                    } else {
+                        progressBar.className += 'bg-warning';
+                    }
+                } else {
+                    progressContainer.style.display = 'none';
+                }
+            }
+
+            // Validation for current session
+            $('#edit_current_session').on('input', function() {
+                const current = parseInt(this.value) || 0;
+                const total = parseInt(document.getElementById('edit_total_sessions').value) || 24;
+                
+                if (current > total) {
+                    this.value = total;
+                    alert('Sesi saat ini tidak boleh melebihi total sesi!');
+                }
+                if (current < 0) {
+                    this.value = 0;
+                }
+            });
+
+            // Form submission handler
+            $('#editStudentForm').on('submit', function(e) {
+                const current = parseInt(document.getElementById('edit_current_session').value) || 0;
+                const total = parseInt(document.getElementById('edit_total_sessions').value) || 24;
+                
+                if (current > total) {
+                    e.preventDefault();
+                    alert('Sesi saat ini tidak boleh melebihi total sesi!');
+                    return false;
+                }
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
+                submitBtn.disabled = true;
             });
 
             // Confirmation for actions
@@ -571,6 +1000,16 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 }
             });
         });
+
+        // Helper function for status badge classes
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'completed': return 'bg-success';
+                case 'active': return 'bg-primary';
+                case 'pending': return 'bg-warning text-dark';
+                default: return 'bg-secondary';
+            }
+        }
     </script>
 </body>
 </html>

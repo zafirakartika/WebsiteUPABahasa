@@ -140,10 +140,37 @@ while ($start_date <= $end_date) {
             color: #6c757d;
             cursor: not-allowed;
         }
-        .form-check-selected {
+        
+        /* Fixed purpose selection styling */
+        .purpose-option {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        .purpose-option:hover {
+            border-color: #667eea;
             background-color: #f8f9ff;
-            border-radius: 8px;
-            border: 1px solid #667eea;
+        }
+        .purpose-option.selected {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+        .purpose-option .form-check-input {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            margin: 0;
+        }
+        .purpose-option .form-check-label {
+            display: block;
+            width: 100%;
+            cursor: pointer;
+            margin: 0;
+            padding-left: 40px; /* Space for radio button */
         }
     </style>
 </head>
@@ -261,6 +288,7 @@ while ($start_date <= $end_date) {
                                             </div>
                                         </div>
 
+                                        <!-- Purpose Selection - FIXED -->
                                         <div class="mb-4">
                                             <label class="form-label fw-bold">Keperluan</label>
                                             <div class="row g-3">
@@ -276,7 +304,7 @@ while ($start_date <= $end_date) {
                                                 foreach ($purposes as $purpose): 
                                                 ?>
                                                     <div class="col-md-6">
-                                                        <div class="form-check p-3">
+                                                        <div class="purpose-option p-3" onclick="selectPurpose('<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>')">
                                                             <input class="form-check-input" type="radio" name="purpose" 
                                                                    value="<?= htmlspecialchars($purpose) ?>" 
                                                                    id="purpose_<?= str_replace(['/', ' '], ['_', '_'], $purpose) ?>" 
@@ -361,7 +389,7 @@ while ($start_date <= $end_date) {
                                 <div class="card-body">
                                     <ul class="small mb-0">
                                         <li>Harap hadir 30 menit sebelum tes dimulai</li>
-                                        <li>Bawa kartu identitas (KTM/KTP)</li>
+                                        <li>Bawa kartu identitas (KTM)</li>
                                         <li>Bawa alat tulis (pensil 2B, penghapus)</li>
                                         <li>Dilarang membawa HP/kalkulator</li>
                                         <li>Berpakaian rapi dan sopan</li>
@@ -388,6 +416,20 @@ while ($start_date <= $end_date) {
             
             // Check the radio button
             event.currentTarget.querySelector('input[type="radio"]').checked = true;
+        }
+        
+        // NEW: Function to handle purpose selection
+        function selectPurpose(purposeId) {
+            // Remove selected class from all purpose options
+            document.querySelectorAll('.purpose-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            event.currentTarget.classList.add('selected');
+            
+            // Check the radio button
+            document.getElementById('purpose_' + purposeId).checked = true;
         }
         
         // Enhanced form validation with visual feedback
@@ -425,21 +467,6 @@ while ($start_date <= $end_date) {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }, 10000);
-        });
-        
-        // Add visual feedback for purpose selection
-        document.querySelectorAll('input[name="purpose"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                // Remove previous selection styling
-                document.querySelectorAll('.form-check').forEach(check => {
-                    check.classList.remove('form-check-selected');
-                });
-                
-                // Add styling to selected option
-                if (this.checked) {
-                    this.closest('.form-check').classList.add('form-check-selected');
-                }
-            });
         });
         
         // Debug: Log form data before submission

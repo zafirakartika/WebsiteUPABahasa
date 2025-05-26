@@ -100,11 +100,6 @@ while ($row = $stmt->fetch()) {
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
         }
-        .stat-badge {
-            font-size: 1.2rem;
-            padding: 10px 15px;
-            border-radius: 20px;
-        }
     </style>
 </head>
 <body class="bg-light">
@@ -161,10 +156,8 @@ while ($row = $stmt->fetch()) {
                         <div class="card text-center bg-warning text-dark">
                             <div class="card-body">
                                 <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
-                                <div class="stat-badge bg-dark text-white mt-2">
-                                    <?= $stats['pending'] ?? 0 ?>
-                                </div>
-                                <h6 class="mt-2">Menunggu</h6>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['pending'] ?? 0 ?></div>
+                                <h6>Menunggu</h6>
                             </div>
                         </div>
                     </div>
@@ -172,10 +165,8 @@ while ($row = $stmt->fetch()) {
                         <div class="card text-center bg-success text-white">
                             <div class="card-body">
                                 <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
-                                <div class="stat-badge bg-dark mt-2">
-                                    <?= $stats['confirmed'] ?? 0 ?>
-                                </div>
-                                <h6 class="mt-2">Dikonfirmasi</h6>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['confirmed'] ?? 0 ?></div>
+                                <h6>Dikonfirmasi</h6>
                             </div>
                         </div>
                     </div>
@@ -183,10 +174,8 @@ while ($row = $stmt->fetch()) {
                         <div class="card text-center bg-danger text-white">
                             <div class="card-body">
                                 <i class="bi bi-x-circle" style="font-size: 2rem;"></i>
-                                <div class="stat-badge bg-dark mt-2">
-                                    <?= $stats['rejected'] ?? 0 ?>
-                                </div>
-                                <h6 class="mt-2">Ditolak</h6>
+                                <div class="display-6 fw-bold mt-2"><?= $stats['rejected'] ?? 0 ?></div>
+                                <h6>Ditolak</h6>
                             </div>
                         </div>
                     </div>
@@ -194,10 +183,8 @@ while ($row = $stmt->fetch()) {
                         <div class="card text-center bg-info text-white">
                             <div class="card-body">
                                 <i class="bi bi-list-ul" style="font-size: 2rem;"></i>
-                                <div class="stat-badge bg-dark mt-2">
-                                    <?= array_sum($stats) ?>
-                                </div>
-                                <h6 class="mt-2">Total</h6>
+                                <div class="display-6 fw-bold mt-2"><?= array_sum($stats) ?></div>
+                                <h6>Total</h6>
                             </div>
                         </div>
                     </div>
@@ -338,7 +325,7 @@ while ($row = $stmt->fetch()) {
                             <div class="card-body">
                                 <ol class="mb-0">
                                     <li>Verifikasi pembayaran mahasiswa melalui sistem keuangan</li>
-                                    <li>Pastikan jumlah pembayaran sesuai (Rp 100.000)</li>
+                                    <li>Pastikan jumlah pembayaran sesuai (Rp 75.000)</li>
                                     <li>Cocokkan billing number dengan data pembayaran</li>
                                     <li>Klik "Konfirmasi" jika pembayaran valid</li>
                                     <li>Klik "Tolak" jika ada masalah dengan pembayaran</li>
