@@ -6,9 +6,10 @@ $user = getCurrentUser();
 
 // Get all test results for the student
 $stmt = $pdo->prepare("
-    SELECT er.*, r.purpose, r.billing_number
+    SELECT er.*, r.purpose, r.billing_number, c.certificate_number
     FROM elpt_results er
     JOIN elpt_registrations r ON er.registration_id = r.id
+    LEFT JOIN certificates c ON er.id = c.result_id
     WHERE er.user_id = ?
     ORDER BY er.test_date DESC
 ");
@@ -197,7 +198,7 @@ $registrations = $stmt->fetchAll();
                                         </p>
                                         
                                         <?php if ($results[0]['total_score'] >= 450): ?>
-                                            <a href="download-certificate.php?id=<?= $results[0]['id'] ?>" class="btn btn-success btn-lg">
+                                            <a href="../download-certificate.php?id=<?= $results[0]['id'] ?>" class="btn btn-success btn-lg" target="_blank">
                                                 <i class="bi bi-download me-2"></i>Download Sertifikat
                                             </a>
                                         <?php else: ?>
@@ -258,7 +259,7 @@ $registrations = $stmt->fetchAll();
                                                     
                                                     <?php if ($result['total_score'] >= 450): ?>
                                                         <div class="mt-3">
-                                                            <a href="download-certificate.php?id=<?= $result['id'] ?>" class="btn btn-success btn-sm">
+                                                            <a href="../download-certificate.php?id=<?= $result['id'] ?>" class="btn btn-success btn-sm" target="_blank">
                                                                 <i class="bi bi-download me-1"></i>Sertifikat
                                                             </a>
                                                         </div>

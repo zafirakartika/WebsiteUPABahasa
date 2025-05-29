@@ -179,7 +179,7 @@ $needs_registration = !$latest_registration ||
                                             
                                             <div class="mt-3">
                                                 <?php if ($latest_result['total_score'] >= 450): ?>
-                                                    <a href="download-certificate.php?id=<?= $latest_result['id'] ?>" class="btn btn-success w-100">
+                                                    <a href="../download-certificate.php?id=<?= $latest_result['id'] ?>" class="btn btn-success btn-lg" target="_blank">
                                                         <i class="bi bi-download me-2"></i>Download Sertifikat
                                                     </a>
                                                 <?php else: ?>

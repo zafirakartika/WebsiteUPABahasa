@@ -41,8 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Check if result already exists
                 $stmt = $pdo->prepare("SELECT id FROM elpt_results WHERE registration_id = ?");
                 $stmt->execute([$registration_id]);
+                $existing_result = $stmt->fetch();
                 
-                if ($stmt->fetch()) {
+                if ($existing_result) {
                     // Update existing result
                     $stmt = $pdo->prepare("
                         UPDATE elpt_results 
@@ -51,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
                     $stmt->execute([$listening_score, $structure_score, $reading_score, $registration_id]);
                     showAlert('Hasil tes berhasil diperbarui!', 'success');
+                    $result_id = $existing_result['id'];
                 } else {
                     // Insert new result
                     $stmt = $pdo->prepare("
@@ -65,7 +67,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $reading_score, 
                         $registration['test_date']
                     ]);
+                    $result_id = $pdo->lastInsertId();
                     showAlert('Hasil tes berhasil disimpan!', 'success');
+                }
+                
+                // Create or update certificate if passing score
+                $total_score = $listening_score + $structure_score + $reading_score;
+                if ($total_score >= MIN_PASSING_SCORE) {
+                    // Check if certificate already exists
+                    $stmt = $pdo->prepare("SELECT id FROM certificates WHERE result_id = ?");
+                    $stmt->execute([$result_id]);
+                    $existing_cert = $stmt->fetch();
+                    
+                    if (!$existing_cert) {
+                        // Generate certificate number
+                        $certificate_number = 'ELPT-' . str_pad($result_id, 4, '0', STR_PAD_LEFT) . '-' . date('Y', strtotime($registration['test_date']));
+                        
+                        // Insert certificate record
+                        $stmt = $pdo->prepare("
+                            INSERT INTO certificates (user_id, result_id, certificate_number, certificate_type, issue_date, is_active) 
+                            VALUES (?, ?, ?, 'elpt', CURDATE(), 1)
+                        ");
+                        $stmt->execute([$registration['user_id'], $result_id, $certificate_number]);
+                    }
                 }
             }
         } catch (PDOException $e) {
@@ -84,10 +108,12 @@ $search = $_GET['search'] ?? '';
 
 $sql = "
     SELECT r.*, u.name, u.nim, u.program, u.faculty,
-           er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score
+           er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score,
+           c.certificate_number
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     LEFT JOIN elpt_results er ON r.id = er.registration_id
+    LEFT JOIN certificates c ON er.id = c.result_id
     WHERE r.payment_status = 'confirmed'
 ";
 
@@ -301,6 +327,9 @@ $available_dates = $stmt->fetchAll();
                                                             <small class="<?= $reg['total_score'] >= 450 ? 'text-success' : 'text-warning' ?>">
                                                                 <?= $reg['total_score'] >= 450 ? 'LULUS' : 'BELUM LULUS' ?>
                                                             </small>
+                                                            <?php if ($reg['total_score'] >= 450 && $reg['certificate_number']): ?>
+                                                                <br><small class="text-info">Sertifikat: <?= $reg['certificate_number'] ?></small>
+                                                            <?php endif; ?>
                                                         </div>
                                                     <?php else: ?>
                                                         <span class="text-muted">-</span>
