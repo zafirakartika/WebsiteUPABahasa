@@ -1,4 +1,7 @@
 <?php
+
+date_default_timezone_set('Asia/Jakarta');
+
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'upa_bahasa');

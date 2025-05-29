@@ -662,6 +662,119 @@ $stats['new_today'] = $stmt->fetch()['count'];
         </div>
     </div>
 
+    <!-- Export Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-download me-2"></i>Export Data Mahasiswa
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="exportForm" method="GET" action="export-students.php" target="_blank">
+                        <div class="mb-3">
+                            <label class="form-label">Format Export</label>
+                            <select class="form-select" name="format" required>
+                                <option value="excel">Excel (.xlsx)</option>
+                                <option value="csv">CSV (.csv)</option>
+                                <option value="pdf">PDF (.pdf)</option>
+                            </select>
+                            <small class="text-muted">Pilih format file yang diinginkan</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Filter Status</label>
+                                    <select class="form-select" name="status">
+                                        <option value="all">Semua Status</option>
+                                        <option value="active">Aktif</option>
+                                        <option value="inactive">Nonaktif</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Filter Jenjang</label>
+                                    <select class="form-select" name="level">
+                                        <option value="">Semua Jenjang</option>
+                                        <option value="D3">D3</option>
+                                        <option value="S1">S1</option>
+                                        <option value="S2">S2</option>
+                                        <option value="S3">S3</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Filter Fakultas</label>
+                            <select class="form-select" name="faculty">
+                                <option value="">Semua Fakultas</option>
+                                <?php foreach ($fakultas_options as $fakultas): ?>
+                                    <option value="<?= htmlspecialchars($fakultas) ?>"><?= htmlspecialchars($fakultas) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tanggal Mulai</label>
+                                    <input type="date" class="form-control" name="start_date">
+                                    <small class="text-muted">Tanggal bergabung mulai</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Tanggal Akhir</label>
+                                    <input type="date" class="form-control" name="end_date">
+                                    <small class="text-muted">Tanggal bergabung sampai</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Data Tambahan</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="include_stats" id="includeStats" checked>
+                                <label class="form-check-label" for="includeStats">
+                                    <strong>Statistik ELPT</strong>
+                                    <small class="d-block text-muted">Total pendaftaran, tes, skor terbaik</small>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="include_course" id="includeCourse" checked>
+                                <label class="form-check-label" for="includeCourse">
+                                    <strong>Status Kursus</strong>
+                                    <small class="d-block text-muted">Progress kursus dan final test</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Informasi:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Excel:</strong> Terbaik untuk analisis data dengan spreadsheet</li>
+                                <li><strong>CSV:</strong> Format universal, cocok untuk import ke sistem lain</li>
+                                <li><strong>PDF:</strong> Format untuk pencetakan dan arsip</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" form="exportForm" class="btn btn-success">
+                        <i class="bi bi-download me-2"></i>Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -886,6 +999,39 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 const message = this.getAttribute('data-message') || 'Apakah Anda yakin?';
                 if (confirm(message)) {
                     window.location.href = this.href;
+                }
+            });
+
+            // Export form handler
+            $('#exportForm').on('submit', function(e) {
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                
+                // Show loading state
+                submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Generating...');
+                submitBtn.prop('disabled', true);
+                
+                // Re-enable button after 3 seconds
+                setTimeout(function() {
+                    submitBtn.html(originalText);
+                    submitBtn.prop('disabled', false);
+                    $('#exportModal').modal('hide');
+                }, 3000);
+            });
+
+            // Pre-fill export form with current filters
+            $('#exportModal').on('show.bs.modal', function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                
+                // Set current filters to export form
+                if (urlParams.get('status')) {
+                    $('select[name="status"]').val(urlParams.get('status'));
+                }
+                if (urlParams.get('level')) {
+                    $('select[name="level"]').val(urlParams.get('level'));
+                }
+                if (urlParams.get('faculty')) {
+                    $('select[name="faculty"]').val(urlParams.get('faculty'));
                 }
             });
         });

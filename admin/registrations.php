@@ -121,9 +121,6 @@ $available_dates = $stmt->fetchAll();
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="fw-bold">Kelola Pendaftaran ELPT</h2>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <i class="bi bi-download me-2"></i>Export Data
-                        </button>
                         <a href="dashboard.php" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Kembali
                         </a>
