@@ -41,89 +41,10 @@ http_response_code(intval($error_code));
     <title><?= $error['title'] ?> - UPA Bahasa UPNVJ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .error-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .error-header {
-            background: linear-gradient(45deg, #dc3545, #6f42c1);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-        .error-code {
-            font-size: 6rem;
-            font-weight: bold;
-            line-height: 1;
-            opacity: 0.8;
-        }
-        .error-title {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-top: 20px;
-        }
-        .error-body {
-            padding: 40px;
-            text-align: center;
-        }
-        .error-icon {
-            font-size: 4rem;
-            color: #dc3545;
-            margin-bottom: 20px;
-        }
-        .btn-home {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-home:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .search-box {
-            max-width: 400px;
-            margin: 0 auto 30px auto;
-        }
-        .helpful-links {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 30px;
-        }
-        .link-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 0;
-            text-decoration: none;
-            color: #333;
-            transition: color 0.3s ease;
-        }
-        .link-item:hover {
-            color: #667eea;
-        }
-        .link-item i {
-            margin-right: 15px;
-            font-size: 1.2rem;
-            color: #667eea;
-        }
-    </style>
+    <link href="assets/css/custom.css" rel="stylesheet">
+    <link href="assets/css/auth.css" rel="stylesheet">
 </head>
-<body>
+<body class="auth-body">
     <div class="container">
         <div class="error-container">
             <!-- Error Header -->

@@ -1,0 +1,334 @@
+/* ==========================================================================
+   STUDENT DASHBOARD STYLES - UPA Bahasa UPNVJ
+   ========================================================================== */
+
+/* Student Sidebar Styles */
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 10px;
+    margin: 5px 0;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+    transform: translateX(5px);
+}
+
+.sidebar .nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Student Cards */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 15px 15px 0 0 !important;
+    border: none;
+    font-weight: 600;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Score Display */
+.score-display {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Chart Container */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* Date Selection for Registration */
+.date-option {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.date-option:hover {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.date-option.selected {
+    border-color: #667eea;
+    background-color: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.date-option.unavailable {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.date-option.unavailable:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: #e9ecef;
+    background-color: #f8f9fa;
+}
+
+/* Purpose Selection for Registration */
+.purpose-option {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: hidden;
+    background: white;
+}
+
+.purpose-option:hover {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.purpose-option.selected {
+    border-color: #667eea;
+    background-color: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.purpose-option .form-check-input {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    margin: 0;
+}
+
+.purpose-option .form-check-label {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+    margin: 0;
+    padding-left: 40px; /* Space for radio button */
+}
+
+/* Course Progress */
+.session-progress {
+    height: 20px;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.session-progress .progress-bar {
+    border-radius: 8px;
+    background: linear-gradient(45deg, #28a745, #20c997);
+}
+
+/* Schedule Items */
+.schedule-item {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid #667eea;
+    border-radius: 0 10px 10px 0;
+    transition: all 0.3s ease;
+}
+
+.schedule-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Test Results Styling */
+.result-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.result-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+/* Student Profile Avatar */
+.student-profile-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+}
+
+/* Quick Links Cards */
+.quick-link-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+}
+
+.quick-link-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
+
+.quick-link-card .bi {
+    transition: all 0.3s ease;
+}
+
+.quick-link-card:hover .bi {
+    transform: scale(1.1);
+}
+
+/* Course Status Progress */
+.course-progress-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+/* Score Analysis Progress Bars */
+.score-progress {
+    height: 12px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    overflow: hidden;
+}
+
+.score-progress .progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Certificate Download Button */
+.btn-certificate {
+    background: linear-gradient(45deg, #28a745, #20c997);
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-certificate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+}
+
+/* Registration Form Enhancements */
+.registration-form {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section h5 {
+    color: #667eea;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+/* Info Sidebar Styling */
+.info-sidebar .card {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.info-sidebar .card-header {
+    border-radius: 15px 15px 0 0 !important;
+    font-weight: 600;
+}
+
+.info-sidebar .card-header.bg-primary {
+    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+}
+
+.info-sidebar .card-header.bg-warning {
+    background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+}
+
+/* Responsive Design for Student Dashboard */
+@media (max-width: 768px) {
+    .score-display {
+        font-size: 1.5rem !important;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .sidebar {
+        min-height: auto;
+    }
+    
+    .date-option, .purpose-option {
+        margin-bottom: 10px;
+    }
+    
+    .student-profile-avatar {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 576px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .date-option, .purpose-option {
+        margin-bottom: 15px;
+    }
+    
+    .registration-form {
+        padding: 20px;
+    }
+}

@@ -50,35 +50,9 @@ $upcoming_tests = $stmt->fetchAll();
     <title>Dashboard Admin - UPA Bahasa UPNVJ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="../assets/css/custom.css" rel="stylesheet">
+    <link href="../assets/css/admin.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #dc3545 0%, #6f42c1 100%);
-        }
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            border-radius: 10px;
-            margin: 5px 0;
-        }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white !important;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-        .stat-card {
-            background: linear-gradient(45deg, var(--gradient-start), var(--gradient-end));
-            color: white;
-            border-radius: 20px;
-        }
-        .stat-card .display-4 {
-            font-weight: bold;
-        }
-    </style>
 </head>
 <body class="bg-light">
     <div class="container-fluid">
@@ -134,7 +108,7 @@ $upcoming_tests = $stmt->fetchAll();
                 <!-- Statistics Cards -->
                 <div class="row g-4 mb-4">
                     <div class="col-lg-3 col-md-6">
-                        <div class="stat-card p-4" style="--gradient-start: #667eea; --gradient-end: #764ba2;">
+                        <div class="stat-card card bg-primary text-white p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="display-4"><?= $stats['total_registrations'] ?></div>
@@ -144,9 +118,9 @@ $upcoming_tests = $stmt->fetchAll();
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-lg-3 col-md-6">
-                        <div class="stat-card p-4" style="--gradient-start: #f093fb; --gradient-end: #f5576c;">
+                        <div class="stat-card card bg-warning text-dark p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="display-4"><?= $stats['pending_payments'] ?></div>
@@ -156,9 +130,9 @@ $upcoming_tests = $stmt->fetchAll();
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-lg-3 col-md-6">
-                        <div class="stat-card p-4" style="--gradient-start: #4facfe; --gradient-end: #00f2fe;">
+                        <div class="stat-card card bg-info text-white p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="display-4"><?= $stats['upcoming_tests'] ?></div>
@@ -168,9 +142,9 @@ $upcoming_tests = $stmt->fetchAll();
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-lg-3 col-md-6">
-                        <div class="stat-card p-4" style="--gradient-start: #43e97b; --gradient-end: #38f9d7;">
+                        <div class="stat-card card bg-success text-white p-4">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <div class="display-4"><?= $stats['total_students'] ?></div>

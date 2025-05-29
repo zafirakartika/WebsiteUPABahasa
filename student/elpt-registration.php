@@ -101,78 +101,8 @@ while ($start_date <= $end_date) {
     <title>Pendaftaran ELPT - UPA Bahasa UPNVJ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-        }
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            border-radius: 10px;
-            margin: 5px 0;
-        }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white !important;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-        .date-option {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .date-option:hover {
-            border-color: #667eea;
-            background-color: #f8f9ff;
-        }
-        .date-option.selected {
-            border-color: #667eea;
-            background-color: #667eea;
-            color: white;
-        }
-        .date-option.unavailable {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            cursor: not-allowed;
-        }
-        
-        /* Fixed purpose selection styling */
-        .purpose-option {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 15px;
-            position: relative;
-            overflow: hidden;
-        }
-        .purpose-option:hover {
-            border-color: #667eea;
-            background-color: #f8f9ff;
-        }
-        .purpose-option.selected {
-            border-color: #667eea;
-            background-color: #f8f9ff;
-        }
-        .purpose-option .form-check-input {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            margin: 0;
-        }
-        .purpose-option .form-check-label {
-            display: block;
-            width: 100%;
-            cursor: pointer;
-            margin: 0;
-            padding-left: 40px; /* Space for radio button */
-        }
-    </style>
+    <link href="../assets/css/custom.css" rel="stylesheet">
+    <link href="../assets/css/student.css" rel="stylesheet">
 </head>
 <body class="bg-light">
     <div class="container-fluid">

@@ -81,26 +81,8 @@ while ($row = $stmt->fetch()) {
     <title>Kelola Pembayaran - UPA Bahasa UPNVJ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(180deg, #dc3545 0%, #6f42c1 100%);
-        }
-        .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            border-radius: 10px;
-            margin: 5px 0;
-        }
-        .nav-link:hover, .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white !important;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-    </style>
+    <link href="../assets/css/custom.css" rel="stylesheet">
+    <link href="../assets/css/admin.css" rel="stylesheet">
 </head>
 <body class="bg-light">
     <div class="container-fluid">

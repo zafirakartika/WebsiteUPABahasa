@@ -1,0 +1,178 @@
+/* ==========================================================================
+   ADMIN PANEL STYLES - UPA Bahasa UPNVJ
+   ========================================================================== */
+
+/* Admin Sidebar Styles */
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #dc3545 0%, #6f42c1 100%);
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    border-radius: 10px;
+    margin: 5px 0;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white !important;
+    transform: translateX(5px);
+}
+
+.sidebar .nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Admin Cards */
+.card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Statistics Cards */
+.stat-card {
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+.stat-card .display-4 {
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Admin Tables */
+.table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    transform: scale(1.001);
+}
+
+/* Data Table Enhancements */
+.data-table {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+/* Admin Specific Form Elements */
+.score-input {
+    max-width: 80px;
+}
+
+.result-row.has-result {
+    background-color: #f8f9fa;
+}
+
+/* Student Avatar in Admin Panel */
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+}
+
+/* Progress bars in admin */
+.progress-small {
+    height: 6px;
+}
+
+/* Tab Styling for Admin Forms */
+.nav-tabs {
+    border-bottom: 2px solid #e9ecef;
+    margin-bottom: 20px;
+    background-color: #f8f9fa;
+    border-radius: 10px 10px 0 0;
+    padding: 5px;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 8px;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 12px 20px;
+    margin-right: 5px;
+    background-color: transparent;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #ffffff;
+    color: #495057;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.nav-tabs .nav-link.active {
+    color: #495057;
+    background-color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+.nav-tabs .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border-radius: 2px;
+}
+
+.nav-tabs .nav-link i {
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+/* Tab content styling */
+.tab-content {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 25px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* Course progress styling in admin */
+#course_progress_container .progress {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    height: 30px;
+}
+
+#course_progress_container .progress-bar {
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(45deg, #28a745, #20c997);
+}
