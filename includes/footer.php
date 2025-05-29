@@ -10,78 +10,6 @@
                     <i class="bi bi-mortarboard me-2" style="font-size: 2rem;"></i>
                     <h5 class="mb-0">UPA Bahasa UPNVJ</h5>
                 </div>
-                <p class="text-light">
-                    Unit Pelayanan Akademik Bahasa Universitas Pembangunan Nasional Veteran Jakarta.
-                    Meningkatkan kemampuan bahasa Inggris mahasiswa melalui tes ELPT dan kursus persiapan.
-                </p>
-                <div class="d-flex gap-3">
-                    <a href="https://www.instagram.com/upnveteranjakarta/" class="text-light">
-                        <i class="bi bi-instagram" style="font-size: 1.5rem;"></i>
-                    </a>
-                    <a href="https://www.facebook.com/upnvj.official" class="text-light">
-                        <i class="bi bi-facebook" style="font-size: 1.5rem;"></i>
-                    </a>
-                    <a href="https://twitter.com/upnvj_official" class="text-light">
-                        <i class="bi bi-twitter" style="font-size: 1.5rem;"></i>
-                    </a>
-                    <a href="https://www.youtube.com/upnvjofficial" class="text-light">
-                        <i class="bi bi-youtube" style="font-size: 1.5rem;"></i>
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Quick Links -->
-            <div class="col-lg-2 col-md-6">
-                <h6 class="fw-bold mb-3">Layanan</h6>
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <a href="/student/elpt-registration.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Tes ELPT
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/student/course.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Kursus Persiapan
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/student/test-results.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Hasil Tes
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/about.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Tentang Kami
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            
-            <!-- Information -->
-            <div class="col-lg-3 col-md-6">
-                <h6 class="fw-bold mb-3">Informasi</h6>
-                <ul class="list-unstyled">
-                    <li class="mb-2">
-                        <a href="/faq.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>FAQ
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/schedule.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Jadwal Tes
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/requirements.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Persyaratan
-                        </a>
-                    </li>
-                    <li class="mb-2">
-                        <a href="/contact.php" class="text-light text-decoration-none">
-                            <i class="bi bi-arrow-right me-2"></i>Kontak
-                        </a>
-                    </li>
-                </ul>
             </div>
             
             <!-- Contact Info -->
@@ -136,26 +64,6 @@
                     &copy; <?= date('Y') ?> UPA Bahasa UPNVJ. All rights reserved.
                 </p>
             </div>
-            <div class="col-md-6 text-md-end">
-                <div class="d-flex justify-content-md-end gap-4 mt-3 mt-md-0">
-                    <a href="/privacy.php" class="text-light text-decoration-none small">
-                        Privacy Policy
-                    </a>
-                    <a href="/terms.php" class="text-light text-decoration-none small">
-                        Terms of Service
-                    </a>
-                    <a href="/sitemap.php" class="text-light text-decoration-none small">
-                        Sitemap
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Version Info -->
-        <div class="text-center mt-3">
-            <small class="text-muted">
-                UPA Bahasa Management System v1.0 | Powered by UPNVJ IT Team
-            </small>
         </div>
     </div>
 </footer>
