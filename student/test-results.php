@@ -6,10 +6,9 @@ $user = getCurrentUser();
 
 // Get all test results for the student
 $stmt = $pdo->prepare("
-    SELECT er.*, r.purpose, r.billing_number, c.certificate_number
+    SELECT er.*, r.purpose, r.billing_number
     FROM elpt_results er
     JOIN elpt_registrations r ON er.registration_id = r.id
-    LEFT JOIN certificates c ON er.id = c.result_id
     WHERE er.user_id = ?
     ORDER BY er.test_date DESC
 ");

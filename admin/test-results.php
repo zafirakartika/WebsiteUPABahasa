@@ -70,27 +70,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $result_id = $pdo->lastInsertId();
                     showAlert('Hasil tes berhasil disimpan!', 'success');
                 }
-                
-                // Create or update certificate if passing score
-                $total_score = $listening_score + $structure_score + $reading_score;
-                if ($total_score >= MIN_PASSING_SCORE) {
-                    // Check if certificate already exists
-                    $stmt = $pdo->prepare("SELECT id FROM certificates WHERE result_id = ?");
-                    $stmt->execute([$result_id]);
-                    $existing_cert = $stmt->fetch();
-                    
-                    if (!$existing_cert) {
-                        // Generate certificate number
-                        $certificate_number = 'ELPT-' . str_pad($result_id, 4, '0', STR_PAD_LEFT) . '-' . date('Y', strtotime($registration['test_date']));
-                        
-                        // Insert certificate record
-                        $stmt = $pdo->prepare("
-                            INSERT INTO certificates (user_id, result_id, certificate_number, certificate_type, issue_date, is_active) 
-                            VALUES (?, ?, ?, 'elpt', CURDATE(), 1)
-                        ");
-                        $stmt->execute([$registration['user_id'], $result_id, $certificate_number]);
-                    }
-                }
             }
         } catch (PDOException $e) {
             $errors[] = 'Terjadi kesalahan: ' . $e->getMessage();
@@ -108,12 +87,10 @@ $search = $_GET['search'] ?? '';
 
 $sql = "
     SELECT r.*, u.name, u.nim, u.program, u.faculty,
-           er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score,
-           c.certificate_number
+           er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     LEFT JOIN elpt_results er ON r.id = er.registration_id
-    LEFT JOIN certificates c ON er.id = c.result_id
     WHERE r.payment_status = 'confirmed'
 ";
 
@@ -255,7 +232,6 @@ $available_dates = $stmt->fetchAll();
                                             <th>Structure</th>
                                             <th>Reading</th>
                                             <th>Total</th>
-                                            <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -295,23 +271,7 @@ $available_dates = $stmt->fetchAll();
                                                         <span class="text-muted">-</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                <td>
-                                                    <?php if ($reg['result_id']): ?>
-                                                        <div>
-                                                            <strong class="<?= $reg['total_score'] >= 450 ? 'text-success' : 'text-warning' ?>">
-                                                                <?= $reg['total_score'] ?>
-                                                            </strong><br>
-                                                            <small class="<?= $reg['total_score'] >= 450 ? 'text-success' : 'text-warning' ?>">
-                                                                <?= $reg['total_score'] >= 450 ? 'LULUS' : 'BELUM LULUS' ?>
-                                                            </small>
-                                                            <?php if ($reg['total_score'] >= 450 && $reg['certificate_number']): ?>
-                                                                <br><small class="text-info">Sertifikat: <?= $reg['certificate_number'] ?></small>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <span class="text-muted">-</span>
-                                                    <?php endif; ?>
-                                                </td>
+                                                
                                                 <td>
                                                     <button type="button" class="btn btn-primary btn-sm" 
                                                             data-bs-toggle="modal" 

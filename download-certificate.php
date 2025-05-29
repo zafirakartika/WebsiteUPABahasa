@@ -15,15 +15,14 @@ if (!$result_id || !is_numeric($result_id)) {
 try {
     // Get test result with user data
     $stmt = $pdo->prepare("
-        SELECT r.*, u.name, u.nim, u.program, u.faculty, u.level, u.no_telpon,
-               reg.purpose, reg.test_date as registration_date, reg.billing_number,
-               c.certificate_number
-        FROM elpt_results r 
-        JOIN users u ON r.user_id = u.id 
-        JOIN elpt_registrations reg ON r.registration_id = reg.id
-        LEFT JOIN certificates c ON r.id = c.result_id
-        WHERE r.id = ?
+    SELECT r.*, u.name, u.nim, u.program, u.faculty, u.level, u.no_telpon,
+           reg.purpose, reg.test_date as registration_date, reg.billing_number
+    FROM elpt_results r 
+    JOIN users u ON r.user_id = u.id 
+    JOIN elpt_registrations reg ON r.registration_id = reg.id
+    WHERE r.id = ?
     ");
+
     $stmt->execute([$result_id]);
     $result = $stmt->fetch();
     
@@ -49,10 +48,6 @@ try {
     
     // Log certificate download
     logActivity('certificate_download', "Downloaded certificate for result ID: $result_id");
-    
-    // Update download count if certificate record exists
-    $stmt = $pdo->prepare("UPDATE certificates SET download_count = download_count + 1 WHERE result_id = ?");
-    $stmt->execute([$result_id]);
     
     // Generate certificate
     generateOfficialCertificate($result);

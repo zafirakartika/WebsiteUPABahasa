@@ -274,7 +274,7 @@ $needs_registration = !$latest_registration ||
                             <div class="card-body">
                                 <?php if ($course_status): ?>
                                     <div class="text-center">
-                                        <div class="progress mb-3" style="height: 20px;">
+                                        <div class="progress session-progress mb-3" style="height: 20px;">
                                             <div class="progress-bar bg-success" role="progressbar" 
                                                  style="width: <?= ($course_status['current_session']/$course_status['total_sessions']) * 100 ?>%">
                                                 <?= $course_status['current_session'] ?>/<?= $course_status['total_sessions'] ?>

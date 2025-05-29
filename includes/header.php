@@ -134,46 +134,6 @@ if ($maintenance_mode == '1' && (!isLoggedIn() || $_SESSION['user_role'] !== 'ad
                     
                     <!-- User Menu -->
                     <div class="navbar-nav">
-                        <!-- Notifications (if any) -->
-                        <div class="nav-item dropdown me-2">
-                            <a class="nav-link position-relative" href="#" data-bs-toggle="dropdown">
-                                <i class="bi bi-bell" style="font-size: 1.2rem;"></i>
-                                <?php 
-                                $notification_count = getUnreadNotificationCount($_SESSION['user_id']);
-                                if ($notification_count > 0): 
-                                ?>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                    <?= $notification_count > 9 ? '9+' : $notification_count ?>
-                                </span>
-                                <?php endif; ?>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end" style="width: 300px;">
-                                <li><h6 class="dropdown-header">Notifikasi</h6></li>
-                                <?php if ($notification_count > 0): ?>
-                                    <?php foreach (getRecentNotifications($_SESSION['user_id'], 5) as $notification): ?>
-                                    <li>
-                                        <a class="dropdown-item small" href="<?= $notification['link'] ?? '#' ?>">
-                                            <div class="d-flex">
-                                                <div class="flex-shrink-0">
-                                                    <i class="bi bi-<?= $notification['icon'] ?? 'info-circle' ?> text-primary"></i>
-                                                </div>
-                                                <div class="flex-grow-1 ms-2">
-                                                    <div class="fw-semibold"><?= htmlspecialchars($notification['title']) ?></div>
-                                                    <div class="text-muted"><?= htmlspecialchars(substr($notification['message'], 0, 50)) ?>...</div>
-                                                    <small class="text-muted"><?= timeAgo($notification['created_at']) ?></small>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </li>
-                                    <?php endforeach; ?>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-center small" href="<?= getBaseURL() ?>/notifications.php">Lihat Semua</a></li>
-                                <?php else: ?>
-                                    <li><span class="dropdown-item text-muted small">Tidak ada notifikasi baru</span></li>
-                                <?php endif; ?>
-                            </ul>
-                        </div>
-                        
                         <!-- User Profile Dropdown -->
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" data-bs-toggle="dropdown">
@@ -318,40 +278,6 @@ function getSystemSetting($key, $default = null) {
         return $result ? $result['setting_value'] : $default;
     } catch (Exception $e) {
         return $default;
-    }
-}
-
-/**
- * Get unread notification count for user
- */
-function getUnreadNotificationCount($user_id) {
-    global $pdo;
-    try {
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0");
-        $stmt->execute([$user_id]);
-        $result = $stmt->fetch();
-        return $result['count'] ?? 0;
-    } catch (Exception $e) {
-        return 0;
-    }
-}
-
-/**
- * Get recent notifications for user
- */
-function getRecentNotifications($user_id, $limit = 5) {
-    global $pdo;
-    try {
-        $stmt = $pdo->prepare("
-            SELECT * FROM notifications 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC 
-            LIMIT ?
-        ");
-        $stmt->execute([$user_id, $limit]);
-        return $stmt->fetchAll();
-    } catch (Exception $e) {
-        return [];
     }
 }
 

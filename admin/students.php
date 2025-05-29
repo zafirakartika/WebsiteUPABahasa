@@ -249,10 +249,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2 class="fw-bold">Data Mahasiswa</h2>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-                            <i class="bi bi-person-plus me-2"></i>Tambah Mahasiswa
-                        </button>
-                        <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportModal">
                             <i class="bi bi-download me-2"></i>Export Data
                         </button>
                         <a href="dashboard.php" class="btn btn-outline-secondary">
