@@ -259,7 +259,7 @@ function checkRegistrationQuota($test_date) {
             SELECT COUNT(*) as count 
             FROM elpt_registrations 
             WHERE test_date = ? 
-            AND payment_status IN ('pending', 'confirmed')
+            AND payment_status IN ('pending', 'confirmed', 'payment_uploaded', 'payment_verified')
         ");
         $stmt->execute([$test_date]);
         $result = $stmt->fetch();

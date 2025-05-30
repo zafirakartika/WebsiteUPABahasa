@@ -237,7 +237,7 @@ $available_dates = $stmt->fetchAll();
                         <div class="card text-center bg-success text-white">
                             <div class="card-body">
                                 <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
-                                <div class="display-6 fw-bold mt-2"><?= $stats['confirmed'] ?? 0 ?></div>
+                                <div class="display-6 fw-bold mt-2"><?= ($stats['confirmed'] ?? 0) + ($stats['payment_uploaded'] ?? 0) + ($stats['payment_verified'] ?? 0) ?></div>
                                 <h6>Dikonfirmasi</h6>
                             </div>
                         </div>
@@ -271,6 +271,8 @@ $available_dates = $stmt->fetchAll();
                                     <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>Semua Status</option>
                                     <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Pending</option>
                                     <option value="confirmed" <?= $filter_status === 'confirmed' ? 'selected' : '' ?>>Dikonfirmasi</option>
+                                    <option value="payment_uploaded" <?= $filter_status === 'payment_uploaded' ? 'selected' : '' ?>>Bukti Terupload</option>
+                                    <option value="payment_verified" <?= $filter_status === 'payment_verified' ? 'selected' : '' ?>>Terverifikasi</option>
                                     <option value="rejected" <?= $filter_status === 'rejected' ? 'selected' : '' ?>>Ditolak</option>
                                 </select>
                             </div>
@@ -355,6 +357,9 @@ $available_dates = $stmt->fetchAll();
                                                 <td>
                                                     <strong><?= formatDate($reg['test_date']) ?></strong><br>
                                                     <small class="text-muted"><?= date('l', strtotime($reg['test_date'])) ?></small>
+                                                    <?php if (!empty($reg['time_slot'])): ?>
+                                                        <br><small class="text-info"><?= formatTimeSlot($reg['time_slot'], $reg['test_date']) ?></small>
+                                                    <?php endif; ?>
                                                 </td>
                                                 <td>
                                                     <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
@@ -363,11 +368,8 @@ $available_dates = $stmt->fetchAll();
                                                     <code class="bg-light p-1 rounded"><?= htmlspecialchars($reg['billing_number']) ?></code>
                                                 </td>
                                                 <td>
-                                                    <span class="badge <?= 
-                                                        $reg['payment_status'] === 'confirmed' ? 'bg-success' : 
-                                                        ($reg['payment_status'] === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') 
-                                                    ?>">
-                                                        <?= strtoupper($reg['payment_status']) ?>
+                                                    <span class="badge <?= getRegistrationStatusBadge($reg['payment_status']) ?>">
+                                                        <?= getRegistrationStatusText($reg['payment_status']) ?>
                                                     </span>
                                                 </td>
                                                 <td>
@@ -549,20 +551,16 @@ $available_dates = $stmt->fetchAll();
                             <table class="table table-sm">
                                 <tr><td><strong>Tanggal Daftar:</strong></td><td>${new Date(registration.created_at).toLocaleDateString('id-ID')}</td></tr>
                                 <tr><td><strong>Tanggal Tes:</strong></td><td>${new Date(registration.test_date).toLocaleDateString('id-ID')}</td></tr>
+                                ${registration.time_slot ? `<tr><td><strong>Waktu Tes:</strong></td><td>${getTimeSlotDisplay(registration.time_slot, registration.test_date)}</td></tr>` : ''}
                                 <tr><td><strong>Keperluan:</strong></td><td>${registration.purpose}</td></tr>
                                 <tr><td><strong>Billing Number:</strong></td><td><code>${registration.billing_number}</code></td></tr>
-                                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(registration.payment_status)}">${registration.payment_status.toUpperCase()}</span></td></tr>
+                                <tr><td><strong>Status:</strong></td><td><span class="badge bg-${getStatusColor(registration.payment_status)}">${getStatusText(registration.payment_status)}</span></td></tr>
                                 <tr><td><strong>Update Terakhir:</strong></td><td>${new Date(registration.updated_at).toLocaleDateString('id-ID')}</td></tr>
                             </table>
                         </div>
                     </div>
                     
-                    ${registration.payment_status === 'pending' ? 
-                        '<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>Status:</strong> Pembayaran masih menunggu konfirmasi.</div>' : 
-                        (registration.payment_status === 'confirmed' ? 
-                            '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>Status:</strong> Pembayaran telah dikonfirmasi.</div>' : 
-                            '<div class="alert alert-danger mt-3"><i class="bi bi-x-circle me-2"></i><strong>Status:</strong> Pembayaran ditolak.</div>')
-                    }
+                    ${getStatusAlert(registration.payment_status)}
                 `;
                 
                 document.getElementById('detailContent').innerHTML = content;
@@ -617,11 +615,62 @@ $available_dates = $stmt->fetchAll();
             $('[title]').tooltip();
         });
 
+        // Helper function for status colors
         function getStatusColor(status) {
             switch(status) {
-                case 'confirmed': return 'success';
+                case 'pending': return 'warning';
+                case 'confirmed': return 'info';
+                case 'payment_uploaded': return 'primary';
+                case 'payment_verified': return 'success';
                 case 'rejected': return 'danger';
-                default: return 'warning';
+                default: return 'secondary';
+            }
+        }
+
+        // Helper function for status text
+        function getStatusText(status) {
+            switch(status) {
+                case 'pending': return 'MENUNGGU';
+                case 'confirmed': return 'DIKONFIRMASI';
+                case 'payment_uploaded': return 'BUKTI TERUPLOAD';
+                case 'payment_verified': return 'TERVERIFIKASI';
+                case 'rejected': return 'DITOLAK';
+                default: return status.toUpperCase();
+            }
+        }
+
+        // Helper function for status alerts
+        function getStatusAlert(status) {
+            switch(status) {
+                case 'pending':
+                    return '<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>Status:</strong> Pembayaran masih menunggu konfirmasi admin.</div>';
+                case 'confirmed':
+                    return '<div class="alert alert-info mt-3"><i class="bi bi-info-circle me-2"></i><strong>Status:</strong> Pendaftaran dikonfirmasi. Mahasiswa perlu upload bukti pembayaran.</div>';
+                case 'payment_uploaded':
+                    return '<div class="alert alert-primary mt-3"><i class="bi bi-upload me-2"></i><strong>Status:</strong> Bukti pembayaran telah diupload. Menunggu verifikasi admin.</div>';
+                case 'payment_verified':
+                    return '<div class="alert alert-success mt-3"><i class="bi bi-shield-check me-2"></i><strong>Status:</strong> Pembayaran telah diverifikasi. Mahasiswa siap mengikuti tes.</div>';
+                case 'rejected':
+                    return '<div class="alert alert-danger mt-3"><i class="bi bi-x-circle me-2"></i><strong>Status:</strong> Pembayaran atau pendaftaran ditolak.</div>';
+                default:
+                    return '<div class="alert alert-secondary mt-3"><i class="bi bi-question-circle me-2"></i><strong>Status:</strong> ' + getStatusText(status) + '</div>';
+            }
+        }
+
+        // Helper function for time slot display
+        function getTimeSlotDisplay(timeSlot, testDate) {
+            const date = new Date(testDate);
+            const dayOfWeek = date.getDay(); // 0=Sunday, 6=Saturday
+            
+            switch(timeSlot) {
+                case 'pagi':
+                    return dayOfWeek === 6 ? 'Pagi (07:00-09:30)' : 'Pagi (09:30-12:00)';
+                case 'siang':
+                    return dayOfWeek === 6 ? 'Siang (09:30-12:00)' : 'Siang (13:00-15:30)';
+                case 'sore':
+                    return 'Sore (13:00-15:30)';
+                default:
+                    return timeSlot;
             }
         }
 
@@ -637,3 +686,28 @@ $available_dates = $stmt->fetchAll();
     </script>
 </body>
 </html>
+
+<?php
+// Helper functions for registration status display
+function getRegistrationStatusBadge($status) {
+    switch($status) {
+        case 'pending': return 'bg-warning text-dark';
+        case 'confirmed': return 'bg-info text-white';
+        case 'payment_uploaded': return 'bg-primary text-white';
+        case 'payment_verified': return 'bg-success text-white';
+        case 'rejected': return 'bg-danger text-white';
+        default: return 'bg-secondary text-white';
+    }
+}
+
+function getRegistrationStatusText($status) {
+    switch($status) {
+        case 'pending': return 'MENUNGGU';
+        case 'confirmed': return 'DIKONFIRMASI';
+        case 'payment_uploaded': return 'BUKTI TERUPLOAD';
+        case 'payment_verified': return 'TERVERIFIKASI';
+        case 'rejected': return 'DITOLAK';
+        default: return strtoupper($status);
+    }
+}
+?>

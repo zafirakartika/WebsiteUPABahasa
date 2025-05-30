@@ -259,14 +259,14 @@ $available_dates = $stmt->fetchAll();
                                                 </td>
                                                 <td>
                                                     <?php if ($reg['result_id']): ?>
-                                                        <span class="badge bg-info"><?= $reg['structure_score'] ?></span>
+                                                        <span class="badge bg-primary"><?= $reg['structure_score'] ?></span>
                                                     <?php else: ?>
                                                         <span class="text-muted">-</span>
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
                                                     <?php if ($reg['result_id']): ?>
-                                                        <span class="badge bg-success"><?= $reg['reading_score'] ?></span>
+                                                        <span class="badge bg-primary"><?= $reg['reading_score'] ?></span>
                                                     <?php else: ?>
                                                         <span class="text-muted">-</span>
                                                     <?php endif; ?>

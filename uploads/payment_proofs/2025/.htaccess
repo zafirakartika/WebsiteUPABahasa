@@ -1,0 +1,21 @@
+# Prevent direct access to uploaded files except for authorized users
+# Place this file in uploads/payment_proofs/.htaccess
+
+# Deny access to all files by default
+Order Deny,Allow
+Deny from all
+
+# Allow access to image and PDF files for viewing
+<FilesMatch "\.(jpg|jpeg|png|pdf)$">
+    Allow from all
+</FilesMatch>
+
+# Prevent execution of PHP files
+<FilesMatch "\.php$">
+    Deny from all
+</FilesMatch>
+
+# Prevent access to sensitive file types
+<FilesMatch "\.(inc|conf|sql|cgi|sh|pl)$">
+    Deny from all
+</FilesMatch>
