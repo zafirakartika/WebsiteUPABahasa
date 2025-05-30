@@ -276,4 +276,55 @@ function checkRegistrationQuota($test_date) {
         return ['current' => 0, 'max' => 30, 'available' => true, 'remaining' => 30];
     }
 }
+
+/**
+ * Format time slot display based on day and slot
+ */
+function formatTimeSlot($time_slot, $test_date) {
+    if (!$time_slot) return 'N/A';
+    
+    $selected_date = new DateTime($test_date);
+    $day_of_week = $selected_date->format('N');
+    
+    switch($time_slot) {
+        case 'pagi':
+            return ($day_of_week == 6) ? 'Pagi (07:00-09:30)' : 'Pagi (09:30-12:00)';
+        case 'siang':
+            return ($day_of_week == 6) ? 'Siang (09:30-12:00)' : 'Siang (13:00-15:30)';
+        case 'sore':
+            return 'Sore (13:00-15:30)';
+        default:
+            return ucfirst($time_slot);
+    }
+}
+
+/**
+ * Get available time slots for a specific date
+ */
+function getAvailableTimeSlots($test_date) {
+    $selected_date = new DateTime($test_date);
+    $day_of_week = $selected_date->format('N');
+    
+    if ($day_of_week == 6) { // Saturday
+        return [
+            'pagi' => 'Pagi (07:00-09:30)',
+            'siang' => 'Siang (09:30-12:00)',
+            'sore' => 'Sore (13:00-15:30)'
+        ];
+    } else { // Tuesday, Thursday
+        return [
+            'pagi' => 'Pagi (09:30-12:00)',
+            'siang' => 'Siang (13:00-15:30)'
+        ];
+    }
+}
+
+/**
+ * Validate time slot for specific date
+ */
+function isValidTimeSlot($time_slot, $test_date) {
+    $available_slots = getAvailableTimeSlots($test_date);
+    return array_key_exists($time_slot, $available_slots);
+}
+
 ?>

@@ -1,5 +1,5 @@
 <?php
-// api/elpt/register.php - API endpoint for ELPT registration
+// api/elpt/register.php - API endpoint for ELPT registration with time slot
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -34,8 +34,8 @@ if (!$input) {
 }
 
 $test_date = $input['test_date'] ?? '';
-$purpose = $input['purpose'] ?? '';
 $time_slot = $input['time_slot'] ?? '';
+$purpose = $input['purpose'] ?? '';
 
 // Validation
 $errors = [];
@@ -44,8 +44,18 @@ if (empty($test_date)) {
     $errors[] = 'Test date is required';
 }
 
+if (empty($time_slot)) {
+    $errors[] = 'Time slot is required';
+}
+
 if (empty($purpose)) {
     $errors[] = 'Purpose is required';
+}
+
+// Validate time slot values
+$valid_time_slots = ['pagi', 'siang', 'sore'];
+if (!empty($time_slot) && !in_array($time_slot, $valid_time_slots)) {
+    $errors[] = 'Invalid time slot selected';
 }
 
 // Validate test date
@@ -68,6 +78,20 @@ if (!empty($test_date)) {
     $day_of_week = $selected_date->format('N');
     if (!in_array($day_of_week, [2, 4, 6])) {
         $errors[] = 'Test is only available on Tuesday, Thursday, and Saturday';
+    }
+    
+    // Validate time slot based on day
+    if (!empty($time_slot)) {
+        if ($day_of_week == 6) { // Saturday
+            $valid_slots = ['pagi', 'siang', 'sore'];
+        } else { // Tuesday, Thursday
+            $valid_slots = ['pagi', 'siang'];
+        }
+        
+        if (!in_array($time_slot, $valid_slots)) {
+            $day_name = $selected_date->format('l');
+            $errors[] = "Time slot '$time_slot' is not available on $day_name";
+        }
     }
 }
 
@@ -121,16 +145,17 @@ try {
     // Generate billing number
     $billing_number = generateBillingNumber();
     
-    // Insert registration
+    // Insert registration with time slot
     $stmt = $pdo->prepare("
         INSERT INTO elpt_registrations 
-        (user_id, test_date, purpose, billing_number, payment_status) 
-        VALUES (?, ?, ?, ?, 'pending')
+        (user_id, test_date, time_slot, purpose, billing_number, payment_status) 
+        VALUES (?, ?, ?, ?, ?, 'pending')
     ");
     
     $stmt->execute([
         $_SESSION['user_id'],
         $test_date,
+        $time_slot,
         $purpose,
         $billing_number
     ]);
@@ -138,7 +163,7 @@ try {
     $registration_id = $pdo->lastInsertId();
     
     // Log activity
-    logActivity('elpt_registration', "Registered for ELPT test on $test_date");
+    logActivity('elpt_registration', "Registered for ELPT test on $test_date at $time_slot");
     
     // Get registration details
     $stmt = $pdo->prepare("
@@ -150,8 +175,23 @@ try {
     $stmt->execute([$registration_id]);
     $registration = $stmt->fetch();
     
-    // Send notification (optional - implement notification system)
-    // sendNotification($user_id, 'ELPT Registration Successful', '...');
+    // Format time slot display
+    $time_slot_display = '';
+    switch($time_slot) {
+        case 'pagi':
+            $selected_date = new DateTime($test_date);
+            $day_of_week = $selected_date->format('N');
+            $time_slot_display = ($day_of_week == 6) ? 'Pagi (07:00-09:30)' : 'Pagi (09:30-12:00)';
+            break;
+        case 'siang':
+            $selected_date = new DateTime($test_date);
+            $day_of_week = $selected_date->format('N');
+            $time_slot_display = ($day_of_week == 6) ? 'Siang (09:30-12:00)' : 'Siang (13:00-15:30)';
+            break;
+        case 'sore':
+            $time_slot_display = 'Sore (13:00-15:30)';
+            break;
+    }
     
     // Return success response
     http_response_code(201);
@@ -162,6 +202,8 @@ try {
             'registration_id' => $registration_id,
             'billing_number' => $billing_number,
             'test_date' => $test_date,
+            'time_slot' => $time_slot,
+            'time_slot_display' => $time_slot_display,
             'purpose' => $purpose,
             'payment_amount' => ELPT_FEE,
             'payment_status' => 'pending',
@@ -183,3 +225,4 @@ try {
         'message' => $e->getMessage()
     ]);
 }
+?>

@@ -13,7 +13,7 @@ $pending_registration = $stmt->fetch();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
     $test_date = $_POST['test_date'] ?? '';
-    // Keep as 'purpose' to match database column and backend processing
+    $time_slot = $_POST['time_slot'] ?? '';
     $purpose = $_POST['purpose'] ?? '';
     
     // Validation
@@ -45,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
         }
     }
     
+    if (empty($time_slot)) {
+        $errors[] = 'Waktu tes harus dipilih';
+    }
+    
     if (empty($purpose)) {
         $errors[] = 'Keperluan harus dipilih';
     }
@@ -54,9 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$pending_registration) {
         try {
             $billing_number = generateBillingNumber();
             
-            // Use 'purpose' to match the database column name
-            $stmt = $pdo->prepare("INSERT INTO elpt_registrations (user_id, test_date, purpose, billing_number) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$_SESSION['user_id'], $test_date, $purpose, $billing_number]);
+            // Insert with time_slot
+            $stmt = $pdo->prepare("INSERT INTO elpt_registrations (user_id, test_date, time_slot, purpose, billing_number) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$_SESSION['user_id'], $test_date, $time_slot, $purpose, $billing_number]);
             
             showAlert('Pendaftaran berhasil! Silakan lakukan pembayaran dengan billing number: ' . $billing_number, 'success');
             header('Location: dashboard.php');
@@ -83,11 +87,28 @@ while ($start_date <= $end_date) {
         $stmt->execute([$date_str]);
         $count = $stmt->fetch()['count'];
         
+        // Get available time slots based on day
+        $time_slots = [];
+        if ($day_of_week == 6) { // Saturday
+            $time_slots = [
+                'pagi' => 'Pagi (07:00-09:30)',
+                'siang' => 'Siang (09:30-12:00)',
+                'sore' => 'Sore (13:00-15:30)'
+            ];
+        } else { // Tuesday, Thursday
+            $time_slots = [
+                'pagi' => 'Pagi (09:30-12:00)',
+                'siang' => 'Siang (13:00-15:30)'
+            ];
+        }
+        
         $available_dates[] = [
             'date' => $date_str,
             'formatted' => $start_date->format('l, d F Y'),
             'count' => $count,
-            'available' => $count < 30
+            'available' => $count < 30,
+            'day_name' => $start_date->format('l'),
+            'time_slots' => $time_slots
         ];
     }
     $start_date->modify('+1 day');
@@ -155,6 +176,7 @@ while ($start_date <= $end_date) {
                         <strong>Perhatian!</strong> Anda masih memiliki pendaftaran yang menunggu konfirmasi pembayaran.
                         <div class="mt-2">
                             <strong>Tanggal Tes:</strong> <?= formatDate($pending_registration['test_date']) ?><br>
+                            <strong>Waktu:</strong> <?= htmlspecialchars($pending_registration['time_slot'] ?? 'Belum dipilih') ?><br>
                             <strong>Billing Number:</strong> <code><?= htmlspecialchars($pending_registration['billing_number']) ?></code>
                         </div>
                     </div>
@@ -203,7 +225,7 @@ while ($start_date <= $end_date) {
                                                 <?php foreach ($available_dates as $date): ?>
                                                     <div class="col-md-6 col-lg-4">
                                                         <div class="date-option p-3 <?= !$date['available'] ? 'unavailable' : '' ?>" 
-                                                             onclick="<?= $date['available'] ? "selectDate('{$date['date']}')" : '' ?>">
+                                                             onclick="<?= $date['available'] ? "selectDate('{$date['date']}', " . json_encode($date['time_slots']) . ")" : '' ?>">
                                                             <input type="radio" name="test_date" value="<?= $date['date'] ?>" 
                                                                    class="d-none" <?= !$date['available'] ? 'disabled' : '' ?> required>
                                                             <div class="fw-bold"><?= $date['formatted'] ?></div>
@@ -218,7 +240,15 @@ while ($start_date <= $end_date) {
                                             </div>
                                         </div>
 
-                                        <!-- Purpose Selection - FIXED -->
+                                        <!-- Time Slot Selection -->
+                                        <div class="mb-4" id="timeSlotSection" style="display: none;">
+                                            <h5 class="mb-3">Pilih Waktu Tes</h5>
+                                            <div class="row g-3" id="timeSlotContainer">
+                                                <!-- Time slots will be populated by JavaScript -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Purpose Selection -->
                                         <div class="mb-4">
                                             <label class="form-label fw-bold">Keperluan</label>
                                             <div class="row g-3">
@@ -267,9 +297,15 @@ while ($start_date <= $end_date) {
                                 <div class="card-body">
                                     <h6>Jadwal Tes ELPT</h6>
                                     <ul class="list-unstyled">
-                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Selasa:</strong> 09:30-12:00 & 13:00-15:30</li>
-                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Kamis:</strong> 09:30-12:00 & 13:00-15:30</li>
-                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Sabtu:</strong> 07:00-09:30, 09:30-12:00 & 13:00-15:30</li>
+                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Selasa:</strong> 
+                                            <small class="d-block ms-4">• Pagi: 09:30-12:00<br>• Siang: 13:00-15:30</small>
+                                        </li>
+                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Kamis:</strong> 
+                                            <small class="d-block ms-4">• Pagi: 09:30-12:00<br>• Siang: 13:00-15:30</small>
+                                        </li>
+                                        <li><i class="bi bi-calendar me-2 text-primary"></i><strong>Sabtu:</strong> 
+                                            <small class="d-block ms-4">• Pagi: 07:00-09:30<br>• Siang: 09:30-12:00<br>• Sore: 13:00-15:30</small>
+                                        </li>
                                     </ul>
                                     
                                     <hr>
@@ -335,8 +371,10 @@ while ($start_date <= $end_date) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function selectDate(date) {
-            // Remove selected class from all options
+        let selectedTimeSlots = {};
+        
+        function selectDate(date, timeSlots) {
+            // Remove selected class from all date options
             document.querySelectorAll('.date-option').forEach(option => {
                 option.classList.remove('selected');
             });
@@ -346,9 +384,58 @@ while ($start_date <= $end_date) {
             
             // Check the radio button
             event.currentTarget.querySelector('input[type="radio"]').checked = true;
+            
+            // Store time slots for this date
+            selectedTimeSlots = timeSlots;
+            
+            // Show time slot section and populate options
+            showTimeSlots(timeSlots);
         }
         
-        // NEW: Function to handle purpose selection
+        function showTimeSlots(timeSlots) {
+            const timeSlotSection = document.getElementById('timeSlotSection');
+            const timeSlotContainer = document.getElementById('timeSlotContainer');
+            
+            // Clear previous time slots
+            timeSlotContainer.innerHTML = '';
+            
+            // Create time slot options
+            Object.keys(timeSlots).forEach(slotKey => {
+                const slotLabel = timeSlots[slotKey];
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'col-md-6';
+                slotDiv.innerHTML = `
+                    <div class="time-slot-option p-3" onclick="selectTimeSlot('${slotKey}')">
+                        <input type="radio" name="time_slot" value="${slotKey}" 
+                               id="time_slot_${slotKey}" class="d-none" required>
+                        <label class="form-check-label fw-medium" for="time_slot_${slotKey}">
+                            <i class="bi bi-clock me-2"></i>${slotLabel}
+                        </label>
+                    </div>
+                `;
+                timeSlotContainer.appendChild(slotDiv);
+            });
+            
+            // Show the time slot section
+            timeSlotSection.style.display = 'block';
+            
+            // Smooth scroll to time slot section
+            timeSlotSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        function selectTimeSlot(slotKey) {
+            // Remove selected class from all time slot options
+            document.querySelectorAll('.time-slot-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            event.currentTarget.classList.add('selected');
+            
+            // Check the radio button
+            document.getElementById('time_slot_' + slotKey).checked = true;
+        }
+        
         function selectPurpose(purposeId) {
             // Remove selected class from all purpose options
             document.querySelectorAll('.purpose-option').forEach(option => {
@@ -365,6 +452,7 @@ while ($start_date <= $end_date) {
         // Enhanced form validation with visual feedback
         document.getElementById('registrationForm').addEventListener('submit', function(e) {
             const testDate = document.querySelector('input[name="test_date"]:checked');
+            const timeSlot = document.querySelector('input[name="time_slot"]:checked');
             const purpose = document.querySelector('input[name="purpose"]:checked');
             
             let hasErrors = false;
@@ -372,6 +460,11 @@ while ($start_date <= $end_date) {
             
             if (!testDate) {
                 errorMessage += 'Silakan pilih tanggal tes.\n';
+                hasErrors = true;
+            }
+            
+            if (!timeSlot) {
+                errorMessage += 'Silakan pilih waktu tes.\n';
                 hasErrors = true;
             }
             
@@ -408,5 +501,34 @@ while ($start_date <= $end_date) {
             }
         });
     </script>
+    
+    <style>
+        .time-slot-option {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .time-slot-option:hover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .time-slot-option.selected {
+            border-color: #667eea;
+            background-color: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .time-slot-option.selected .bi {
+            color: white;
+        }
+    </style>
 </body>
 </html>
