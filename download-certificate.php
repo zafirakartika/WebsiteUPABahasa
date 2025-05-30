@@ -1,5 +1,5 @@
 <?php
-// download-certificate.php - Official UPNVJ ELPT Certificate (Exact Format Match)
+// download-certificate.php - Official UPNVJ ELPT Certificate (Fixed)
 require_once 'config/database.php';
 requireLogin();
 
@@ -60,8 +60,8 @@ try {
 }
 
 function generateOfficialCertificate($result) {
-    // Generate certificate details
-    $certificate_number = $result['certificate_number'] ?: 'G25-' . str_pad($result['id'], 2, '0', STR_PAD_LEFT) . '/TF-M-TPT09/' . date('Y') . '/' . str_pad($result['id'], 4, '0', STR_PAD_LEFT);
+    // Generate certificate number using result ID and year
+    $certificate_number = 'G25-' . str_pad($result['id'], 2, '0', STR_PAD_LEFT) . '/TF-M-TPT09/' . date('Y') . '/' . str_pad($result['id'], 4, '0', STR_PAD_LEFT);
     $test_date = date('d F Y', strtotime($result['test_date']));
     $issue_date = date('d F Y');
     
@@ -532,10 +532,10 @@ function generateOfficialCertificate($result) {
             <div class="decorative-border"></div>
             
             <div class="content">
-                <!-- Header Section (Purple) -->
+                <!-- Header Section (Brown/Gold) -->
                 <div class="header">
                     <div class="logo-container">
-                        <div class="logo-placeholder"></div>
+                        <div class="logo-placeholder">UPNVJ</div>
                     </div>
                     <div class="header-text">
                         <div class="university-name">Universitas Pembangunan Nasional "Veteran" Jakarta</div>
@@ -669,7 +669,8 @@ function generateOfficialCertificate($result) {
             <p style="margin-bottom: 3mm; color: #666;">
                 <strong>' . htmlspecialchars($result['name']) . '</strong> | 
                 Score: <strong>' . $result['total_score'] . '</strong> | 
-                Level: <strong>' . $proficiency_level . '</strong>
+                Level: <strong>' . $proficiency_level . '</strong> |
+                Certificate: <strong>' . $certificate_number . '</strong>
             </p>
             <button class="print-btn" onclick="window.print()">
                 🖨️ Print Certificate

@@ -18,6 +18,90 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     }
 }
 
+// Handle registration update (without payment status)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
+    $registration_id = $_POST['registration_id'] ?? '';
+    $test_date = $_POST['test_date'] ?? '';
+    $purpose = $_POST['purpose'] ?? '';
+    
+    $errors = [];
+    
+    if (empty($registration_id) || !is_numeric($registration_id)) {
+        $errors[] = 'Invalid registration ID';
+    }
+    
+    if (empty($test_date)) {
+        $errors[] = 'Test date is required';
+    }
+    
+    if (empty($purpose)) {
+        $errors[] = 'Purpose is required';
+    }
+    
+    // Validate test date
+    if (!empty($test_date)) {
+        $selected_date = new DateTime($test_date);
+        $day_of_week = $selected_date->format('N');
+        
+        if (!in_array($day_of_week, [2, 4, 6])) {
+            $errors[] = 'Test date must be Tuesday, Thursday, or Saturday';
+        }
+    }
+    
+    if (empty($errors)) {
+        try {
+            // Check if registration exists
+            $stmt = $pdo->prepare("SELECT * FROM elpt_registrations WHERE id = ?");
+            $stmt->execute([$registration_id]);
+            $registration = $stmt->fetch();
+            
+            if (!$registration) {
+                $errors[] = 'Registration not found';
+            } else {
+                // Check quota for new test date (if date is being changed)
+                if ($test_date !== $registration['test_date']) {
+                    $stmt = $pdo->prepare("
+                        SELECT COUNT(*) as count 
+                        FROM elpt_registrations 
+                        WHERE test_date = ? 
+                        AND payment_status IN ('pending', 'confirmed')
+                        AND id != ?
+                    ");
+                    $stmt->execute([$test_date, $registration_id]);
+                    $count = $stmt->fetch()['count'];
+                    
+                    $max_participants = getSystemSetting('max_participants_per_session', 30);
+                    
+                    if ($count >= $max_participants) {
+                        $errors[] = 'Selected date is fully booked';
+                    }
+                }
+                
+                if (empty($errors)) {
+                    // Update registration (without payment status)
+                    $stmt = $pdo->prepare("
+                        UPDATE elpt_registrations 
+                        SET test_date = ?, purpose = ?, updated_at = NOW()
+                        WHERE id = ?
+                    ");
+                    
+                    $stmt->execute([$test_date, $purpose, $registration_id]);
+                    
+                    showAlert('Pendaftaran berhasil diperbarui!', 'success');
+                    header('Location: registrations.php');
+                    exit;
+                }
+            }
+        } catch (PDOException $e) {
+            $errors[] = 'Database error occurred';
+        }
+    }
+    
+    if (!empty($errors)) {
+        showAlert(implode('<br>', $errors), 'error');
+    }
+}
+
 // Get all registrations with filters
 $filter_status = $_GET['status'] ?? 'all';
 $filter_date = $_GET['date'] ?? '';
@@ -145,7 +229,7 @@ $available_dates = $stmt->fetchAll();
                             <div class="card-body">
                                 <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
                                 <div class="display-6 fw-bold mt-2"><?= $stats['pending'] ?? 0 ?></div>
-                                <h6>Menunggu</h6>
+                                <h6>Pending</h6>
                             </div>
                         </div>
                     </div>
@@ -169,6 +253,14 @@ $available_dates = $stmt->fetchAll();
                     </div>
                 </div>
 
+                <!-- Info Alert -->
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Untuk mengelola status pembayaran (konfirmasi/tolak), gunakan halaman 
+                    <a href="payments.php" class="alert-link">Kelola Pembayaran</a>. 
+                    Di halaman ini Anda hanya dapat mengubah tanggal tes dan keperluan.
+                </div>
+
                 <!-- Filters -->
                 <div class="card mb-4">
                     <div class="card-body">
@@ -177,7 +269,7 @@ $available_dates = $stmt->fetchAll();
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-select">
                                     <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>Semua Status</option>
-                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Menunggu</option>
+                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Pending</option>
                                     <option value="confirmed" <?= $filter_status === 'confirmed' ? 'selected' : '' ?>>Dikonfirmasi</option>
                                     <option value="rejected" <?= $filter_status === 'rejected' ? 'selected' : '' ?>>Ditolak</option>
                                 </select>
@@ -283,18 +375,21 @@ $available_dates = $stmt->fetchAll();
                                                         <button class="btn btn-outline-primary" 
                                                                 data-bs-toggle="modal" 
                                                                 data-bs-target="#detailModal"
-                                                                data-registration='<?= json_encode($reg) ?>'>
+                                                                data-registration='<?= json_encode($reg) ?>'
+                                                                title="Lihat Detail">
                                                             <i class="bi bi-eye"></i>
                                                         </button>
                                                         <button class="btn btn-outline-warning" 
                                                                 data-bs-toggle="modal" 
                                                                 data-bs-target="#editModal"
-                                                                data-registration='<?= json_encode($reg) ?>'>
+                                                                data-registration='<?= json_encode($reg) ?>'
+                                                                title="Edit Tanggal & Keperluan">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
                                                         <a href="?delete=<?= $reg['id'] ?>" 
                                                            class="btn btn-outline-danger confirm-action"
-                                                           data-message="Hapus pendaftaran ini?">
+                                                           data-message="Hapus pendaftaran ini?"
+                                                           title="Hapus Pendaftaran">
                                                             <i class="bi bi-trash"></i>
                                                         </a>
                                                     </div>
@@ -305,6 +400,39 @@ $available_dates = $stmt->fetchAll();
                                 </table>
                             </div>
                         <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Quick Actions Info -->
+                <div class="row g-4 mt-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Panduan Aksi</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="mb-0">
+                                    <li><i class="bi bi-eye text-primary me-2"></i><strong>Detail:</strong> Lihat informasi lengkap pendaftaran</li>
+                                    <li><i class="bi bi-pencil text-warning me-2"></i><strong>Edit:</strong> Ubah tanggal tes dan keperluan</li>
+                                    <li><i class="bi bi-trash text-danger me-2"></i><strong>Hapus:</strong> Hapus pendaftaran (tidak dapat dikembalikan)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Perhatian</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="mb-0">
+                                    <li>Status pembayaran hanya bisa diubah di halaman <strong>Kelola Pembayaran</strong></li>
+                                    <li>Perubahan tanggal tes akan memeriksa kuota otomatis</li>
+                                    <li>Penghapusan pendaftaran tidak dapat dibatalkan</li>
+                                    <li>Mahasiswa akan mendapat notifikasi untuk perubahan penting</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -324,14 +452,11 @@ $available_dates = $stmt->fetchAll();
                 <div class="modal-body" id="detailContent">
                     <!-- Content will be loaded here -->
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal (Only Date and Purpose) -->
     <div class="modal fade" id="editModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -341,14 +466,22 @@ $available_dates = $stmt->fetchAll();
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="editForm" method="POST">
+                <form method="POST" id="editForm">
                     <div class="modal-body">
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="registration_id" id="edit_registration_id">
                         
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Anda hanya dapat mengubah tanggal tes dan keperluan. 
+                            Untuk mengubah status pembayaran, gunakan halaman 
+                            <a href="payments.php" class="alert-link">Kelola Pembayaran</a>.
+                        </div>
+                        
                         <div class="mb-3">
                             <label class="form-label">Tanggal Tes</label>
                             <input type="date" class="form-control" name="test_date" id="edit_test_date" required>
+                            <small class="text-muted">Hanya tersedia hari Selasa, Kamis, dan Sabtu</small>
                         </div>
                         
                         <div class="mb-3">
@@ -362,15 +495,6 @@ $available_dates = $stmt->fetchAll();
                                 <option value="Ijazah">Ijazah</option>
                             </select>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Status Pembayaran</label>
-                            <select class="form-select" name="payment_status" id="edit_payment_status" required>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -379,72 +503,6 @@ $available_dates = $stmt->fetchAll();
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Export Modal -->
-    <div class="modal fade" id="exportModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-download me-2"></i>Export Data
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="exportForm" method="GET" action="export-registrations.php">
-                        <div class="mb-3">
-                            <label class="form-label">Format Export</label>
-                            <select class="form-select" name="format" required>
-                                <option value="excel">Excel (.xlsx)</option>
-                                <option value="csv">CSV (.csv)</option>
-                                <option value="pdf">PDF (.pdf)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Filter Status</label>
-                            <select class="form-select" name="status">
-                                <option value="all">Semua Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Tanggal Mulai</label>
-                                    <input type="date" class="form-control" name="start_date">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Tanggal Akhir</label>
-                                    <input type="date" class="form-control" name="end_date">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="include_student_data" id="includeStudentData" checked>
-                                <label class="form-check-label" for="includeStudentData">
-                                    Sertakan data mahasiswa lengkap
-                                </label>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" form="exportForm" class="btn btn-success">
-                        <i class="bi bi-download me-2"></i>Download
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -498,6 +556,13 @@ $available_dates = $stmt->fetchAll();
                             </table>
                         </div>
                     </div>
+                    
+                    ${registration.payment_status === 'pending' ? 
+                        '<div class="alert alert-warning mt-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>Status:</strong> Pembayaran masih menunggu konfirmasi.</div>' : 
+                        (registration.payment_status === 'confirmed' ? 
+                            '<div class="alert alert-success mt-3"><i class="bi bi-check-circle me-2"></i><strong>Status:</strong> Pembayaran telah dikonfirmasi.</div>' : 
+                            '<div class="alert alert-danger mt-3"><i class="bi bi-x-circle me-2"></i><strong>Status:</strong> Pembayaran ditolak.</div>')
+                    }
                 `;
                 
                 document.getElementById('detailContent').innerHTML = content;
@@ -511,40 +576,32 @@ $available_dates = $stmt->fetchAll();
                 document.getElementById('edit_registration_id').value = registration.id;
                 document.getElementById('edit_test_date').value = registration.test_date;
                 document.getElementById('edit_purpose').value = registration.purpose;
-                document.getElementById('edit_payment_status').value = registration.payment_status;
             });
 
-            // Edit Form Handler
+            // Form submission handler
             $('#editForm').on('submit', function(e) {
-                e.preventDefault();
+                const testDate = document.getElementById('edit_test_date').value;
                 
-                const formData = new FormData(this);
+                // Validate test date (Tuesday, Thursday, Saturday)
+                if (testDate) {
+                    const selectedDate = new Date(testDate);
+                    const dayOfWeek = selectedDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+                    
+                    if (![2, 4, 6].includes(dayOfWeek)) { // Tuesday=2, Thursday=4, Saturday=6
+                        e.preventDefault();
+                        alert('Tanggal tes hanya tersedia pada hari Selasa, Kamis, dan Sabtu');
+                        return false;
+                    }
+                }
+                
+                // Show loading state
                 const submitBtn = this.querySelector('button[type="submit"]');
                 const originalText = submitBtn.innerHTML;
-                
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
                 submitBtn.disabled = true;
                 
-                fetch('../api/admin/update-registration.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Pendaftaran berhasil diperbarui', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showToast(data.message || 'Terjadi kesalahan', 'error');
-                    }
-                })
-                .catch(error => {
-                    showToast('Terjadi kesalahan sistem', 'error');
-                })
-                .finally(() => {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                });
+                // Note: Form will submit normally since we're not using AJAX here
+                // The loading state is just for user feedback
             });
 
             // Confirmation for delete actions
@@ -555,6 +612,9 @@ $available_dates = $stmt->fetchAll();
                     window.location.href = this.href;
                 }
             });
+
+            // Add tooltips for better UX
+            $('[title]').tooltip();
         });
 
         function getStatusColor(status) {
@@ -565,23 +625,15 @@ $available_dates = $stmt->fetchAll();
             }
         }
 
-        function showToast(message, type) {
-            // Simple toast implementation
-            const toast = document.createElement('div');
-            toast.className = `alert alert-${type} position-fixed top-0 end-0 m-3`;
-            toast.style.zIndex = '9999';
-            toast.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-            `;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                if (toast.parentElement) {
-                    toast.remove();
-                }
-            }, 5000);
-        }
+        // Set minimum date for test date input (tomorrow)
+        document.addEventListener('DOMContentLoaded', function() {
+            const testDateInput = document.getElementById('edit_test_date');
+            if (testDateInput) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                testDateInput.min = tomorrow.toISOString().split('T')[0];
+            }
+        });
     </script>
 </body>
 </html>

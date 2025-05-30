@@ -225,9 +225,11 @@ while ($start_date <= $end_date) {
                                                 <?php foreach ($available_dates as $date): ?>
                                                     <div class="col-md-6 col-lg-4">
                                                         <div class="date-option p-3 <?= !$date['available'] ? 'unavailable' : '' ?>" 
-                                                             onclick="<?= $date['available'] ? "selectDate('{$date['date']}', " . json_encode($date['time_slots']) . ")" : '' ?>">
+                                                            <?php if ($date['available']): ?>
+                                                                onclick="selectDate('<?= $date['date'] ?>', <?= htmlspecialchars(json_encode($date['time_slots'])) ?>, this)"
+                                                            <?php endif; ?>>
                                                             <input type="radio" name="test_date" value="<?= $date['date'] ?>" 
-                                                                   class="d-none" <?= !$date['available'] ? 'disabled' : '' ?> required>
+                                                                class="d-none" <?= !$date['available'] ? 'disabled' : '' ?> required>
                                                             <div class="fw-bold"><?= $date['formatted'] ?></div>
                                                             <small class="<?= $date['available'] ? 'text-success' : 'text-danger' ?>">
                                                                 <?= $date['available'] ? 
@@ -373,81 +375,81 @@ while ($start_date <= $end_date) {
     <script>
         let selectedTimeSlots = {};
         
-        function selectDate(date, timeSlots) {
-            // Remove selected class from all date options
-            document.querySelectorAll('.date-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked option
-            event.currentTarget.classList.add('selected');
-            
-            // Check the radio button
-            event.currentTarget.querySelector('input[type="radio"]').checked = true;
-            
-            // Store time slots for this date
-            selectedTimeSlots = timeSlots;
-            
-            // Show time slot section and populate options
-            showTimeSlots(timeSlots);
-        }
-        
-        function showTimeSlots(timeSlots) {
-            const timeSlotSection = document.getElementById('timeSlotSection');
-            const timeSlotContainer = document.getElementById('timeSlotContainer');
-            
-            // Clear previous time slots
-            timeSlotContainer.innerHTML = '';
-            
-            // Create time slot options
-            Object.keys(timeSlots).forEach(slotKey => {
-                const slotLabel = timeSlots[slotKey];
-                const slotDiv = document.createElement('div');
-                slotDiv.className = 'col-md-6';
-                slotDiv.innerHTML = `
-                    <div class="time-slot-option p-3" onclick="selectTimeSlot('${slotKey}')">
-                        <input type="radio" name="time_slot" value="${slotKey}" 
-                               id="time_slot_${slotKey}" class="d-none" required>
-                        <label class="form-check-label fw-medium" for="time_slot_${slotKey}">
-                            <i class="bi bi-clock me-2"></i>${slotLabel}
-                        </label>
-                    </div>
-                `;
-                timeSlotContainer.appendChild(slotDiv);
-            });
-            
-            // Show the time slot section
-            timeSlotSection.style.display = 'block';
-            
-            // Smooth scroll to time slot section
-            timeSlotSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        
-        function selectTimeSlot(slotKey) {
-            // Remove selected class from all time slot options
-            document.querySelectorAll('.time-slot-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked option
-            event.currentTarget.classList.add('selected');
-            
-            // Check the radio button
-            document.getElementById('time_slot_' + slotKey).checked = true;
-        }
-        
-        function selectPurpose(purposeId) {
-            // Remove selected class from all purpose options
-            document.querySelectorAll('.purpose-option').forEach(option => {
-                option.classList.remove('selected');
-            });
-            
-            // Add selected class to clicked option
-            event.currentTarget.classList.add('selected');
-            
-            // Check the radio button
-            document.getElementById('purpose_' + purposeId).checked = true;
-        }
+        function selectDate(date, timeSlots, element) {
+    // Remove selected class from all date options
+    document.querySelectorAll('.date-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    element.classList.add('selected');
+    
+    // Check the radio button
+    element.querySelector('input[type="radio"]').checked = true;
+    
+    // Store time slots for this date
+    selectedTimeSlots = timeSlots;
+    
+    // Show time slot section and populate options
+    showTimeSlots(timeSlots);
+}
+
+function selectTimeSlot(slotKey, element) {
+    // Remove selected class from all time slot options
+    document.querySelectorAll('.time-slot-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    element.classList.add('selected');
+    
+    // Check the radio button
+    document.getElementById('time_slot_' + slotKey).checked = true;
+}
+
+function selectPurpose(purposeId, element) {
+    // Remove selected class from all purpose options
+    document.querySelectorAll('.purpose-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    // Add selected class to clicked option
+    element.classList.add('selected');
+    
+    // Check the radio button
+    document.getElementById('purpose_' + purposeId).checked = true;
+}
+
+function showTimeSlots(timeSlots) {
+    const timeSlotSection = document.getElementById('timeSlotSection');
+    const timeSlotContainer = document.getElementById('timeSlotContainer');
+    
+    // Clear previous time slots
+    timeSlotContainer.innerHTML = '';
+    
+    // Create time slot options
+    Object.keys(timeSlots).forEach(slotKey => {
+        const slotLabel = timeSlots[slotKey];
+        const slotDiv = document.createElement('div');
+        slotDiv.className = 'col-md-6';
+        slotDiv.innerHTML = `
+            <div class="time-slot-option p-3" onclick="selectTimeSlot('${slotKey}', this)">
+                <input type="radio" name="time_slot" value="${slotKey}" 
+                       id="time_slot_${slotKey}" class="d-none" required>
+                <label class="form-check-label fw-medium" for="time_slot_${slotKey}">
+                    <i class="bi bi-clock me-2"></i>${slotLabel}
+                </label>
+            </div>
+        `;
+        timeSlotContainer.appendChild(slotDiv);
+    });
+    
+    // Show the time slot section
+    timeSlotSection.style.display = 'block';
+    
+    // Smooth scroll to time slot section
+    timeSlotSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
         
         // Enhanced form validation with visual feedback
         document.getElementById('registrationForm').addEventListener('submit', function(e) {

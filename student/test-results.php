@@ -20,6 +20,7 @@ $stmt = $pdo->prepare("SELECT * FROM elpt_registrations WHERE user_id = ? ORDER 
 $stmt->execute([$_SESSION['user_id']]);
 $registrations = $stmt->fetchAll();
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -29,7 +30,7 @@ $registrations = $stmt->fetchAll();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <<link href="../assets/css/custom.css" rel="stylesheet">
+    <link href="../assets/css/custom.css" rel="stylesheet">
     <link href="../assets/css/student.css" rel="stylesheet">
 </head>
 <body class="bg-light">
