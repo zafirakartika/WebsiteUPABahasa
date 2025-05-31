@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirmPassword'] ?? '';
     $nim = sanitizeInput($_POST['nim'] ?? '');
+    $no_telpon = sanitizeInput($_POST['no_telpon'] ?? ''); 
     $is_admin = isset($_POST['isAdmin']);
     $registration_code = $_POST['registrationCode'] ?? '';
     
@@ -62,6 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $nim_validated = true;
             }
         }
+        
+        // Phone number validation for students
+        if (empty($no_telpon)) {
+            $errors[] = 'Nomor telepon diperlukan untuk registrasi mahasiswa';
+        } elseif (!isValidPhone($no_telpon)) {
+            $errors[] = 'Format nomor telepon tidak valid (contoh: 081234567890)';
+        }
     }
     
     // Admin-specific validation
@@ -98,6 +106,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // Check if phone number already exists (for students)
+    if (!$is_admin && !empty($no_telpon) && empty($errors)) {
+        try {
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE no_telpon = ?");
+            $stmt->execute([$no_telpon]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Nomor telepon telah terdaftar';
+            }
+        } catch (PDOException $e) {
+            $errors[] = 'Terjadi error saat mengecek nomor telepon';
+        }
+    }
+    
     // Register user if no errors
     if (empty($errors)) {
         try {
@@ -118,11 +139,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $stmt = $pdo->prepare("
                     INSERT INTO users 
-                    (name, email, password, nim, role, program, faculty, level) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (name, email, password, nim, no_telpon, role, program, faculty, level) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
-                    $name, $email, $hashed_password, $nim, $role,
+                    $name, $email, $hashed_password, $nim, $no_telpon, $role,
                     $siakad_data['program'], $siakad_data['faculty'], $siakad_data['level']
                 ]);
             }
@@ -325,6 +346,25 @@ function getSiakadData($nim) {
                     </small>
                 </div>
 
+                <!-- Phone Number (Student Only) -->
+                <div class="form-floating mb-3" id="phoneField">
+                    <input 
+                        type="tel" 
+                        class="form-control" 
+                        id="no_telpon" 
+                        name="no_telpon" 
+                        value="<?= htmlspecialchars($_POST['no_telpon'] ?? '') ?>" 
+                        required
+                        placeholder="081234567890"
+                        pattern="(\62|0)8[1-9][0-9]{6,9}"
+                        onblur="validatePhone()"
+                    >
+                    <label for="no_telpon">
+                        <i class="bi bi-telephone me-2"></i>Nomor Telepon
+                    </label>
+                    <div id="phoneValidation" class="phone-validation"></div>
+                </div>
+
                 <!-- Admin Registration Code (Admin Only) -->
                 <div class="form-floating mb-3 d-none" id="registrationCodeField">
                     <input 
@@ -375,7 +415,7 @@ function getSiakadData($nim) {
 
                 <button type="submit" class="btn btn-register text-white" id="registerBtn">
                     <span class="btn-text">
-                        Daftar Sekarang
+                        Daftar
                         <i class="bi bi-arrow-right ms-2"></i>
                     </span>
                     <span class="btn-loading d-none">
@@ -396,6 +436,7 @@ function getSiakadData($nim) {
     <script>
         let nimValidated = <?= $nim_validated ? 'true' : 'false' ?>;
         let nimChecking = false;
+        let phoneValidated = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('registerForm');
@@ -428,19 +469,25 @@ function getSiakadData($nim) {
         function toggleAdminFields() {
             const isAdmin = document.getElementById('isAdmin').checked;
             const nimField = document.getElementById('nimField');
+            const phoneField = document.getElementById('phoneField');
             const registrationCodeField = document.getElementById('registrationCodeField');
             const nimInput = document.getElementById('nim');
+            const phoneInput = document.getElementById('no_telpon');
             const registrationCodeInput = document.getElementById('registrationCode');
 
             if (isAdmin) {
                 nimField.classList.add('d-none');
+                phoneField.classList.add('d-none');
                 registrationCodeField.classList.remove('d-none');
                 nimInput.required = false;
+                phoneInput.required = false;
                 registrationCodeInput.required = true;
             } else {
                 nimField.classList.remove('d-none');
+                phoneField.classList.remove('d-none');
                 registrationCodeField.classList.add('d-none');
                 nimInput.required = true;
+                phoneInput.required = true;
                 registrationCodeInput.required = false;
             }
         }
@@ -499,6 +546,44 @@ function getSiakadData($nim) {
                 nimInput.classList.remove('is-valid');
             } finally {
                 nimChecking = false;
+            }
+        }
+
+        function validatePhone() {
+            const isAdmin = document.getElementById('isAdmin').checked;
+            if (isAdmin) return;
+
+            const phoneInput = document.getElementById('no_telpon');
+            const phoneValidation = document.getElementById('phoneValidation');
+            const phone = phoneInput.value.trim();
+
+            // Indonesian phone number pattern
+            const phoneRegex = /^(\+62|62|0)8[1-9][0-9]{6,9}$/;
+
+            if (!phone) {
+                phoneValidated = false;
+                phoneValidation.className = 'phone-validation invalid';
+                phoneValidation.innerHTML = '<i class="bi bi-x-circle me-1"></i>Nomor telepon diperlukan';
+                phoneInput.classList.add('is-invalid');
+                phoneInput.classList.remove('is-valid');
+                return;
+            }
+
+            // Remove spaces and validate
+            const cleanPhone = phone.replace(/\s/g, '');
+            
+            if (phoneRegex.test(cleanPhone)) {
+                phoneValidated = true;
+                phoneValidation.className = 'phone-validation valid';
+                phoneValidation.innerHTML = '<i class="bi bi-check-circle me-1"></i>Nomor telepon valid';
+                phoneInput.classList.add('is-valid');
+                phoneInput.classList.remove('is-invalid');
+            } else {
+                phoneValidated = false;
+                phoneValidation.className = 'phone-validation invalid';
+                phoneValidation.innerHTML = '<i class="bi bi-x-circle me-1"></i>Nomor telepon tidak valid';
+                phoneInput.classList.add('is-invalid');
+                phoneInput.classList.remove('is-valid');
             }
         }
 
@@ -562,7 +647,7 @@ function getSiakadData($nim) {
                 isValid = false;
             }
 
-            // Validate NIM (for students)
+            // Validate NIM and Phone (for students)
             const isAdmin = document.getElementById('isAdmin').checked;
             if (!isAdmin) {
                 const nim = document.getElementById('nim').value.trim();
@@ -575,6 +660,18 @@ function getSiakadData($nim) {
                 } else if (!nimValidated) {
                     showFieldError(document.getElementById('nim'), 'Silakan tunggu validasi NIM selesai');
                     isValid = false;
+                }
+
+                const phone = document.getElementById('no_telpon').value.trim();
+                if (!phone) {
+                    showFieldError(document.getElementById('no_telpon'), 'Nomor telepon diperlukan');
+                    isValid = false;
+                } else if (!phoneValidated) {
+                    validatePhone(); // Try to validate again
+                    if (!phoneValidated) {
+                        showFieldError(document.getElementById('no_telpon'), 'Format nomor telepon tidak valid');
+                        isValid = false;
+                    }
                 }
             }
 
@@ -635,5 +732,46 @@ function getSiakadData($nim) {
             }, 5000);
         });
     </script>
+
+    <style>
+        .nim-validation, .phone-validation {
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+        }
+
+        .nim-validation.valid, .phone-validation.valid {
+            color: #28a745;
+        }
+
+        .nim-validation.invalid, .phone-validation.invalid {
+            color: #dc3545;
+        }
+
+        .nim-validation.validating {
+            color: #007bff;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 0.8rem;
+            height: 0.8rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+    </style>
 </body>
 </html>

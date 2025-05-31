@@ -37,34 +37,7 @@ $registrations = $stmt->fetchAll();
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-0">
-                <div class="text-white p-4">
-                    <div class="text-center mb-4">
-                        <i class="bi bi-mortarboard" style="font-size: 2.5rem;"></i>
-                        <h5 class="mt-2">UPA Bahasa</h5>
-                        <small>UPNVJ</small>
-                    </div>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                        </a>
-                        <a class="nav-link" href="elpt-registration.php">
-                            <i class="bi bi-calendar-plus me-2"></i>Daftar ELPT
-                        </a>
-                        <a class="nav-link active" href="test-results.php">
-                            <i class="bi bi-file-earmark-text me-2"></i>Hasil Tes
-                        </a>
-                        <a class="nav-link" href="course.php">
-                            <i class="bi bi-book me-2"></i>Kursus
-                        </a>
-                        <hr class="my-3" style="border-color: rgba(255,255,255,0.3);">
-                        <a class="nav-link" href="../logout.php">
-                            <i class="bi bi-box-arrow-right me-2"></i>Logout
-                        </a>
-                    </nav>
-                </div>
-            </div>
+            <?php include 'includes/sidebar.php'; ?>
 
             <!-- Main Content -->
             <div class="col-md-9 col-lg-10 p-4">
