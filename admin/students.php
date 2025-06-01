@@ -28,11 +28,23 @@ if (isset($_GET['action'])) {
         case 'delete':
             if ($student_id) {
                 try {
-                    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'student'");
+                    $pdo->beginTransaction();
+                    
+                    // Delete course data for this student
+                    $stmt = $pdo->prepare("DELETE FROM courses WHERE user_id = ?");
                     $stmt->execute([$student_id]);
-                    showAlert('Data mahasiswa berhasil dihapus', 'success');
+                    
+                    // Delete ELPT registrations for this student 
+                    // (this will automatically delete related elpt_results and payment_proofs due to CASCADE constraints)
+                    $stmt = $pdo->prepare("DELETE FROM elpt_registrations WHERE user_id = ?");
+                    $stmt->execute([$student_id]);
+                    
+                    $pdo->commit();
+                    showAlert('Data pendaftaran dan hasil tes mahasiswa berhasil dihapus. Akun mahasiswa tetap aktif.', 'success');
                 } catch (PDOException $e) {
-                    showAlert('Tidak dapat menghapus mahasiswa yang memiliki data terkait', 'error');
+                    $pdo->rollBack();
+                    error_log("Delete student data error: " . $e->getMessage());
+                    showAlert('Terjadi kesalahan saat menghapus data mahasiswa', 'error');
                 }
             }
             break;
@@ -142,6 +154,11 @@ $sql = "
     LEFT JOIN elpt_results res ON u.id = res.user_id
     LEFT JOIN courses c ON u.id = c.user_id
     WHERE u.role = 'student'
+    AND (
+        er.id IS NOT NULL OR 
+        res.id IS NOT NULL OR 
+        c.id IS NOT NULL
+    )
 ";
 
 $params = [];
@@ -220,7 +237,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                     <h2 class="fw-bold">Data Mahasiswa</h2>
                     <div class="d-flex gap-2">
                         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <i class="bi bi-download me-2"></i>Export Data
+                            <i class="bi bi-download me-2"></i>Ekspor Data
                         </button>
                         <a href="dashboard.php" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Kembali
@@ -638,14 +655,14 @@ $stats['new_today'] = $stmt->fetch()['count'];
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">
-                        <i class="bi bi-download me-2"></i>Export Data Mahasiswa
+                        <i class="bi bi-download me-2"></i>Ekspor Data Mahasiswa
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="exportForm" method="GET" action="export-students.php" target="_blank">
                         <div class="mb-3">
-                            <label class="form-label">Format Export</label>
+                            <label class="form-label">Format Ekspor</label>
                             <select class="form-select" name="format" required>
                                 <option value="excel">Excel (.xlsx)</option>
                                 <option value="csv">CSV (.csv)</option>
@@ -722,16 +739,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                     <small class="d-block text-muted">Progress kursus dan final test</small>
                                 </label>
                             </div>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Informasi:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li><strong>Excel:</strong> Terbaik untuk analisis data dengan spreadsheet</li>
-                                <li><strong>CSV:</strong> Format universal, cocok untuk import ke sistem lain</li>
-                                <li><strong>PDF:</strong> Format untuk pencetakan dan arsip</li>
-                            </ul>
                         </div>
                     </form>
                 </div>
