@@ -1,85 +1,55 @@
-# UPA Bahasa UPNVJ
+# 🎓 UPA Bahasa UPNVJ
 
-A web-based management system for the Academic Language Service Unit at UPN Veteran Jakarta University. This system handles ELPT (English Language Proficiency Test) registration, test results, and preparation courses.
+**English Language Proficiency Test (ELPT) Management System**
 
-## What's This?
+A comprehensive web-based platform for managing English language testing and preparation courses at UPN Veteran Jakarta University.
 
-This is a complete web application that helps manage English language testing at UPN Veteran Jakarta. Students can register for tests online, view their results, and take preparation courses. Admins can manage registrations, confirm payments, input test scores, and generate reports.
+---
 
-## Features
+## 📖 About
 
-For Students:
-- Register for ELPT tests online
-- View test results with score breakdown
-- Download certificates if passed
-- Join preparation courses (24 sessions)
-- Track course progress
+UPA Bahasa UPNVJ is a digital solution that streamlines the entire ELPT process - from student registration to certificate issuance. Built specifically for UPN Veteran Jakarta's Academic Language Service Unit, this system modernizes language proficiency assessment and course management.
 
-For Admins:
-- Manage test registrations
-- Confirm payments
-- Input test results
-- Generate reports and export data
-- Monitor student progress
+## ✨ Key Features
 
-## Tech Stack
+### 👨‍🎓 For Students
+- **Easy ELPT Registration** - Online booking with flexible time slots
+- **Real-time Results** - View detailed score breakdowns with interactive charts
+- **Digital Certificates** - Automatic PDF generation for passing scores
+- **Course Enrollment** - 24-session preparation program with progress tracking
+- **Payment Management** - Secure payment proof upload and verification
 
-- Frontend: HTML, CSS, Bootstrap 5, JavaScript, jQuery
-- Backend: PHP 8.0+, MySQL
-- Features: Chart.js for graphs, DataTables, PDF certificates
+### 👨‍💼 For Administrators
+- **Registration Management** - Approve, modify, and track all test registrations
+- **Payment Verification** - Streamlined payment confirmation workflow
+- **Score Input System** - Efficient test result entry with validation
+- **Student Analytics** - Comprehensive student data with export capabilities
+- **Course Monitoring** - Track student progress through preparation courses
 
-## Quick Setup
+## 🛠️ Technology Stack
 
-1. Requirements: PHP 8.0+, MySQL 5.7+, Apache/Nginx
-2. Database: Import `config/upa_bahasa.sql` to MySQL
-3. Config: Edit database settings in `config/database.php`
-4. Web Server: Point to project folder, enable `.htaccess`
+- **Frontend:** HTML5, CSS3, Bootstrap 5, JavaScript, Chart.js
+- **Backend:** PHP 8.0+, MySQL 5.7+
+- **Features:** Responsive design, DataTables, PDF generation, File uploads
+- **Security:** Password hashing, SQL injection prevention, Role-based access
 
-## Default Accounts
+## 📱 Features Showcase
 
-Admin:
-- Email: `admin@upabahasa.upnvj.ac.id`
-- Password: `password`
+- **Responsive Design** - Works perfectly on desktop, tablet, and mobile
+- **Real-time Updates** - Live payment status and registration confirmations
+- **Data Export** - Excel, CSV, and PDF export capabilities
+- **Certificate Generation** - Professional PDF certificates with security features
+- **Analytics Dashboard** - Comprehensive reporting for administrators
 
-Student:
-- Email: `budi@student.upnvj.ac.id`
-- Password: `password`
+## 🔒 Security Features
 
-## Project Structure
+- Role-based access control (Admin/Student)
+- Password encryption (bcrypt)
+- SQL injection prevention
+- File upload validation
+- Session management
+- CSRF protection
 
-```
-upa-bahasa/
-├── admin/          # Admin panel pages
-├── student/        # Student panel pages
-├── api/            # REST API endpoints
-├── assets/         # CSS, JS, images
-├── config/         # Database config & SQL
-├── includes/       # Shared templates
-└── *.php           # Main pages (login, register, etc.)
-```
+**Made with ❤️ for UPN Veteran Jakarta**
 
-## Key Files
-
-- `index.php` - Landing page
-- `login.php` / `register.php` - Authentication
-- `config/database.php` - Database connection & helper functions
-- `config/upa_bahasa.sql` - Database schema
-- `admin/dashboard.php` - Admin control panel
-- `student/dashboard.php` - Student dashboard
-
-## How It Works
-
-1. Students register accounts with their student ID (NIM)
-2. They can register for ELPT tests on available dates
-3. Admin confirms payments and manages test sessions
-4. Admin inputs test results after tests are completed
-5. Students can view results and download certificates if they pass
-6. Students can also join preparation courses with progress tracking
-
-## Test Details
-
-- Schedule: Tuesday, Thursday, Saturday
-- Components: Listening (250pts), Structure (250pts), Reading (250pts)
-- Total: 750 points maximum
-- Pass Score: 450 points (60%)
-- Certificate: Auto-generated PDF for passing scores
+*Enhancing English language proficiency through technology*
