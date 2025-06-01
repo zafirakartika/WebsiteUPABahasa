@@ -1,5 +1,5 @@
 <?php
-// admin/includes/sidebar.php
+// admin/includes/sidebar.php - Updated
 // Get current page for active state
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 ?>
@@ -22,6 +22,7 @@ $current_page = basename($_SERVER['PHP_SELF'], '.php');
             </a>
             <a class="nav-link <?= $current_page === 'payments' ? 'active' : '' ?>" href="payments.php">
                 <i class="bi bi-credit-card me-2"></i>Pembayaran
+                <small class="d-block text-light opacity-75">ELPT & Kursus</small>
             </a>
             <a class="nav-link <?= $current_page === 'test-results' ? 'active' : '' ?>" href="test-results.php">
                 <i class="bi bi-file-earmark-text me-2"></i>Input Hasil

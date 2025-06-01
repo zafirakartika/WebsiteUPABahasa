@@ -11,8 +11,76 @@ $stmt = $pdo->prepare("SELECT * FROM courses WHERE user_id = ? ORDER BY created_
 $stmt->execute([$_SESSION['user_id']]);
 $current_course = $stmt->fetch();
 
+// Handle payment proof upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_payment') {
+    if (isset($_FILES['payment_proof']) && $_FILES['payment_proof']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['payment_proof'];
+        $course_id = $_POST['course_id'];
+        
+        // Validate file
+        $max_size = 5 * 1024 * 1024; // 5MB
+        $allowed_types = ['jpg', 'jpeg', 'png', 'pdf'];
+        $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        
+        if ($file['size'] > $max_size) {
+            $errors[] = 'File terlalu besar. Maksimal 5MB';
+        } elseif (!in_array($file_ext, $allowed_types)) {
+            $errors[] = 'Tipe file tidak diizinkan. Hanya JPG, PNG, dan PDF';
+        } else {
+            // Create upload directory
+            $upload_dir = '../uploads/payment_proofs/' . date('Y') . '/' . date('m') . '/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            // Generate unique filename
+            $file_name = 'course_payment_' . $course_id . '_' . time() . '.' . $file_ext;
+            $file_path = $upload_dir . $file_name;
+            $relative_path = 'uploads/payment_proofs/' . date('Y') . '/' . date('m') . '/' . $file_name;
+            
+            if (move_uploaded_file($file['tmp_name'], $file_path)) {
+                try {
+                    // Update course with payment proof
+                    $stmt = $pdo->prepare("
+                        UPDATE courses 
+                        SET payment_status = 'payment_uploaded', 
+                            payment_proof_file = ?,
+                            payment_proof_uploaded_at = NOW(),
+                            updated_at = NOW()
+                        WHERE id = ? AND user_id = ?
+                    ");
+                    $stmt->execute([$relative_path, $course_id, $_SESSION['user_id']]);
+                    
+                    // Log activity
+                    logActivity('course_payment_upload', "Uploaded payment proof for course ID: $course_id");
+                    
+                    showAlert('Bukti pembayaran berhasil diupload! Menunggu konfirmasi admin.', 'success');
+                    header('Location: course.php');
+                    exit;
+                } catch (PDOException $e) {
+                    // Delete uploaded file if database update fails
+                    if (file_exists($file_path)) {
+                        unlink($file_path);
+                    }
+                    error_log("Course payment upload error: " . $e->getMessage());
+                    $errors[] = 'Gagal menyimpan ke database. Silakan coba lagi.';
+                }
+            } else {
+                $errors[] = 'Gagal mengupload file';
+            }
+        }
+    } else {
+        $errors[] = 'Silakan pilih file bukti pembayaran';
+    }
+    
+    // If there are errors, show them
+    if (!empty($errors)) {
+        showAlert(implode('<br>', $errors), 'error');
+    }
+}
+
 // Handle course registration
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$current_course) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action']) && !$current_course) {
     $final_test_date = $_POST['final_test_date'] ?? '';
     
     // Validation
@@ -36,16 +104,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$current_course) {
     // Register for course if no errors
     if (empty($errors)) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO courses (user_id, final_test_date, status) VALUES (?, ?, 'active')");
-            $stmt->execute([$_SESSION['user_id'], $final_test_date]);
+            // Generate billing number for course
+            $billing_number = 'COURSE-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             
-            showAlert('Pendaftaran kursus berhasil! Anda akan dihubungi untuk jadwal sesi pertama.', 'success');
+            $stmt = $pdo->prepare("
+                INSERT INTO courses 
+                (user_id, final_test_date, status, payment_status, billing_number) 
+                VALUES (?, ?, 'pending', 'pending', ?)
+            ");
+            $stmt->execute([$_SESSION['user_id'], $final_test_date, $billing_number]);
+            
+            // Log activity
+            logActivity('course_registration', "Registered for course with final test date: $final_test_date");
+            
+            showAlert('Pendaftaran kursus berhasil! Silakan upload bukti pembayaran untuk melanjutkan.', 'success');
             header('Location: course.php');
             exit;
             
         } catch (PDOException $e) {
-            $errors[] = 'Terjadi kesalahan: ' . $e->getMessage();
+            error_log("Course registration error: " . $e->getMessage());
+            $errors[] = 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.';
         }
+    }
+    
+    if (!empty($errors)) {
+        showAlert(implode('<br>', $errors), 'error');
     }
 }
 
@@ -154,15 +237,35 @@ while ($start_date <= $end_date) {
                                         <h6 class="mt-3">Final Test</h6>
                                         <p class="fw-bold"><?= formatDate($current_course['final_test_date']) ?></p>
                                         
+                                        <!-- Payment Status Display -->
+                                        <div class="mt-3">
+                                            <h6>Status Pembayaran</h6>
+                                            <span class="badge fs-6 <?= 
+                                                ($current_course['payment_status'] ?? 'pending') === 'pending' ? 'bg-warning text-dark' : 
+                                                (($current_course['payment_status'] ?? 'pending') === 'payment_uploaded' ? 'bg-primary' : 
+                                                (($current_course['payment_status'] ?? 'pending') === 'payment_verified' ? 'bg-success' : 'bg-secondary'))
+                                            ?>">
+                                                <?php
+                                                $payment_status = $current_course['payment_status'] ?? 'pending';
+                                                switch($payment_status) {
+                                                    case 'pending': echo 'MENUNGGU PEMBAYARAN'; break;
+                                                    case 'payment_uploaded': echo 'MENUNGGU KONFIRMASI'; break;
+                                                    case 'payment_verified': echo 'PEMBAYARAN DIKONFIRMASI'; break;
+                                                    default: echo strtoupper($payment_status);
+                                                }
+                                                ?>
+                                            </span>
+                                        </div>
+                                        
                                         <?php if ($current_course['status'] === 'active'): ?>
-                                            <div class="alert alert-info">
+                                            <div class="alert alert-info mt-3">
                                                 <small>
                                                     <i class="bi bi-info-circle me-1"></i>
                                                     Anda sedang mengikuti kursus sesi ke-<?= $current_course['current_session'] ?>
                                                 </small>
                                             </div>
                                         <?php elseif ($current_course['status'] === 'completed'): ?>
-                                            <div class="alert alert-success">
+                                            <div class="alert alert-success mt-3">
                                                 <small>
                                                     <i class="bi bi-check-circle me-1"></i>
                                                     Kursus telah selesai!
@@ -172,6 +275,101 @@ while ($start_date <= $end_date) {
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Payment Section -->
+                            <?php 
+                            $payment_status = $current_course['payment_status'] ?? 'pending';
+                            if ($payment_status === 'pending'): 
+                            ?>
+                                <!-- Payment Upload Form -->
+                                <div class="mt-4">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <strong>Silakan Upload Bukti Pembayaran Kursus</strong><br>
+                                        Biaya kursus: <strong><?= formatCurrency(COURSE_FEE) ?></strong>
+                                        <?php if (!empty($current_course['billing_number'])): ?>
+                                            <br>Billing Number: <code><?= htmlspecialchars($current_course['billing_number']) ?></code>
+                                        <?php endif; ?>
+                                    </div>
+                                    
+                                    <!-- Payment Information -->
+                                    <div class="alert alert-light border mb-4">
+                                        <h6 class="fw-bold mb-3"><i class="bi bi-bank me-2"></i>Informasi Pembayaran</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <strong>Rekening Tujuan:</strong><br>
+                                                <div class="bg-white p-2 rounded border">
+                                                    <strong>Bank BNI</strong><br>
+                                                    <code>1234567890</code><br>
+                                                    <small>A.n. UPA Bahasa UPNVJ</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong>Detail Pembayaran:</strong><br>
+                                                <div class="bg-white p-2 rounded border">
+                                                    <strong>Nominal:</strong> <?= formatCurrency(COURSE_FEE) ?><br>
+                                                    <strong>Keterangan:</strong> Kursus Persiapan ELPT<br>
+                                                    <small class="text-muted">24 Sesi Pembelajaran</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Upload Form -->
+                                    <form method="POST" enctype="multipart/form-data" id="paymentUploadForm" class="p-4 bg-light rounded">
+                                        <input type="hidden" name="action" value="upload_payment">
+                                        <input type="hidden" name="course_id" value="<?= $current_course['id'] ?>">
+                                        
+                                        <h6 class="fw-bold mb-3"><i class="bi bi-cloud-upload me-2"></i>Upload Bukti Pembayaran</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">Pilih File Bukti Transfer</label>
+                                            <input type="file" class="form-control form-control-lg" name="payment_proof" accept=".jpg,.jpeg,.png,.pdf" required>
+                                            <div class="form-text">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Format yang diizinkan: JPG, PNG, PDF (maksimal 5MB)<br>
+                                                Pastikan bukti pembayaran jelas dan terbaca dengan baik
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-end">
+                                            <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                                <span class="btn-text">
+                                                    <i class="bi bi-cloud-upload me-2"></i>Upload Bukti Pembayaran
+                                                </span>
+                                                <span class="btn-loading d-none">
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>Mengupload...
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                                
+                            <?php elseif ($payment_status === 'payment_uploaded'): ?>
+                                <div class="alert alert-primary mt-4">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    <strong>Bukti Pembayaran Telah Diupload</strong><br>
+                                    Bukti pembayaran Anda sedang diverifikasi oleh admin. Anda akan mendapat notifikasi setelah pembayaran dikonfirmasi.
+                                    <?php if (!empty($current_course['payment_proof_uploaded_at'])): ?>
+                                        <br><small>Diupload pada: <?= formatDateTime($current_course['payment_proof_uploaded_at']) ?></small>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <?php if (!empty($current_course['payment_proof_file'])): ?>
+                                    <div class="text-center mt-3">
+                                        <a href="../<?= htmlspecialchars($current_course['payment_proof_file']) ?>" target="_blank" class="btn btn-outline-primary">
+                                            <i class="bi bi-eye me-2"></i>Lihat Bukti Pembayaran yang Diupload
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
+                                
+                            <?php elseif ($payment_status === 'payment_verified'): ?>
+                                <div class="alert alert-success mt-4">
+                                    <i class="bi bi-shield-check me-2"></i>
+                                    <strong>Pembayaran Dikonfirmasi!</strong><br>
+                                    Selamat! Pembayaran kursus Anda telah dikonfirmasi. Kursus akan segera dimulai sesuai jadwal.
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     
@@ -208,7 +406,7 @@ while ($start_date <= $end_date) {
                             
                             <div class="alert alert-warning mt-3">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>Perhatian:</strong> Jadwal sesi akan dikonfirmasi oleh admin setelah pendaftaran.
+                                <strong>Perhatian:</strong> Jadwal sesi akan dikonfirmasi oleh admin setelah pembayaran dikonfirmasi.
                             </div>
                         </div>
                     </div>
@@ -243,18 +441,7 @@ while ($start_date <= $end_date) {
                                         </div>
                                     </div>
 
-                                    <!-- Error Messages -->
-                                    <?php if (!empty($errors)): ?>
-                                        <div class="alert alert-danger">
-                                            <ul class="mb-0">
-                                                <?php foreach ($errors as $error): ?>
-                                                    <li><?= htmlspecialchars($error) ?></li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <form method="POST">
+                                    <form method="POST" id="courseRegistrationForm">
                                         <!-- Student Info -->
                                         <div class="mb-4">
                                             <h6>Data Mahasiswa</h6>
@@ -279,7 +466,7 @@ while ($start_date <= $end_date) {
                                                 <?php foreach (array_slice($available_dates, 0, 12) as $date): ?>
                                                     <div class="col-md-6 col-lg-4">
                                                         <div class="date-option p-3" onclick="selectDate('<?= $date['date'] ?>')">
-                                                            <input type="radio" name="final_test_date" value="<?= $date['date'] ?>" class="d-none">
+                                                            <input type="radio" name="final_test_date" value="<?= $date['date'] ?>" class="d-none" required>
                                                             <div class="fw-bold"><?= $date['formatted'] ?></div>
                                                             <small class="text-muted"><?= $date['day'] ?></small>
                                                         </div>
@@ -289,8 +476,13 @@ while ($start_date <= $end_date) {
                                         </div>
 
                                         <div class="text-end">
-                                            <button type="submit" class="btn btn-primary btn-lg">
-                                                <i class="bi bi-book me-2"></i>Daftar Kursus
+                                            <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                                <span class="btn-text">
+                                                    <i class="bi bi-book me-2"></i>Daftar Kursus
+                                                </span>
+                                                <span class="btn-loading d-none">
+                                                    <span class="spinner-border spinner-border-sm me-2"></span>Mendaftar...
+                                                </span>
                                             </button>
                                         </div>
                                     </form>
@@ -334,7 +526,7 @@ while ($start_date <= $end_date) {
                                     <ul class="small mb-0">
                                         <li>Wajib hadir minimal 80% dari total sesi</li>
                                         <li>Final test dilaksanakan sesuai jadwal yang dipilih</li>
-                                        <li>Biaya kursus: Rp 850.000 (24 sesi)</li>
+                                        <li>Biaya kursus: <?= formatCurrency(COURSE_FEE) ?> (24 sesi)</li>
                                         <li>Sertifikat diberikan jika lulus final test</li>
                                     </ul>
                                 </div>
@@ -361,15 +553,98 @@ while ($start_date <= $end_date) {
             event.currentTarget.querySelector('input[type="radio"]').checked = true;
         }
         
-        // Form validation
-        document.querySelector('form')?.addEventListener('submit', function(e) {
+        // Course registration form validation
+        document.getElementById('courseRegistrationForm')?.addEventListener('submit', function(e) {
             const finalTestDate = document.querySelector('input[name="final_test_date"]:checked');
             
             if (!finalTestDate) {
                 alert('Silakan pilih tanggal final test');
                 e.preventDefault();
-                return;
+                return false;
             }
+            
+            // Show loading state
+            const registerBtn = document.getElementById('registerBtn');
+            const btnText = registerBtn.querySelector('.btn-text');
+            const btnLoading = registerBtn.querySelector('.btn-loading');
+            
+            btnText.classList.add('d-none');
+            btnLoading.classList.remove('d-none');
+            registerBtn.disabled = true;
+        });
+        
+        // Payment upload form validation and submission
+        document.getElementById('paymentUploadForm')?.addEventListener('submit', function(e) {
+            const fileInput = document.querySelector('input[name="payment_proof"]');
+            
+            if (!fileInput.files.length) {
+                alert('Silakan pilih file bukti pembayaran');
+                e.preventDefault();
+                return false;
+            }
+            
+            const file = fileInput.files[0];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+            
+            if (file.size > maxSize) {
+                alert('File terlalu besar. Maksimal 5MB');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!allowedTypes.includes(file.type)) {
+                alert('Tipe file tidak diizinkan. Hanya JPG, PNG, dan PDF');
+                e.preventDefault();
+                return false;
+            }
+            
+            // Show loading state
+            const uploadBtn = document.getElementById('uploadBtn');
+            const btnText = uploadBtn.querySelector('.btn-text');
+            const btnLoading = uploadBtn.querySelector('.btn-loading');
+            
+            if (btnText && btnLoading) {
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+                uploadBtn.disabled = true;
+            }
+            
+            // Form will submit normally, no need to prevent default
+        });
+
+        // File input change event for validation feedback
+        document.querySelector('input[name="payment_proof"]')?.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+            
+            // Show file info
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'mt-2 text-muted small';
+            
+            if (file.size > maxSize) {
+                fileInfo.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i>File terlalu besar (maksimal 5MB)';
+                fileInfo.className = 'mt-2 text-danger small';
+            } else if (!allowedTypes.includes(file.type)) {
+                fileInfo.innerHTML = '<i class="bi bi-exclamation-triangle text-danger me-1"></i>Tipe file tidak didukung';
+                fileInfo.className = 'mt-2 text-danger small';
+            } else {
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileInfo.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>File valid (' + fileSize + ' MB)';
+                fileInfo.className = 'mt-2 text-success small';
+            }
+            
+            // Remove existing file info
+            const existingInfo = this.parentNode.querySelector('.file-info');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            fileInfo.classList.add('file-info');
+            this.parentNode.appendChild(fileInfo);
         });
     </script>
 </body>

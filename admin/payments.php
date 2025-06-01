@@ -6,17 +6,28 @@ requireRole('admin');
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $registration_id = $_POST['registration_id'] ?? null;
+    $payment_type = $_POST['payment_type'] ?? 'elpt';
     $notes = $_POST['notes'] ?? '';
     
     if ($action === 'confirm_payment' && $registration_id) {
         try {
-            // Update registration to payment_verified
-            $stmt = $pdo->prepare("
-                UPDATE elpt_registrations 
-                SET payment_status = 'payment_verified', updated_at = NOW()
-                WHERE id = ?
-            ");
-            $stmt->execute([$registration_id]);
+            if ($payment_type === 'elpt') {
+                // Update ELPT registration to payment_verified
+                $stmt = $pdo->prepare("
+                    UPDATE elpt_registrations 
+                    SET payment_status = 'payment_verified', updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$registration_id]);
+            } else if ($payment_type === 'course') {
+                // Update course payment and activate course
+                $stmt = $pdo->prepare("
+                    UPDATE courses 
+                    SET payment_status = 'payment_verified', status = 'active', updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$registration_id]);
+            }
             
             showAlert('Pembayaran berhasil dikonfirmasi!', 'success');
             
@@ -27,16 +38,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     
     if ($action === 'reject_payment' && $registration_id) {
         try {
-            // Update registration back to confirmed so student can re-upload
-            $stmt = $pdo->prepare("
-                UPDATE elpt_registrations 
-                SET payment_status = 'confirmed', 
-                    payment_proof_file = NULL,
-                    payment_proof_uploaded_at = NULL,
-                    updated_at = NOW()
-                WHERE id = ?
-            ");
-            $stmt->execute([$registration_id]);
+            if ($payment_type === 'elpt') {
+                // Update ELPT registration back to confirmed so student can re-upload
+                $stmt = $pdo->prepare("
+                    UPDATE elpt_registrations 
+                    SET payment_status = 'confirmed', 
+                        payment_proof_file = NULL,
+                        payment_proof_uploaded_at = NULL,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$registration_id]);
+            } else if ($payment_type === 'course') {
+                // Update course back to pending payment
+                $stmt = $pdo->prepare("
+                    UPDATE courses 
+                    SET payment_status = 'pending', 
+                        payment_proof_file = NULL,
+                        payment_proof_uploaded_at = NULL,
+                        updated_at = NOW()
+                    WHERE id = ?
+                ");
+                $stmt->execute([$registration_id]);
+            }
             
             showAlert('Pembayaran ditolak. Mahasiswa dapat mengupload ulang bukti pembayaran.', 'warning');
             
@@ -49,53 +73,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     exit;
 }
 
-// Get all registrations with payment information
+// Get all registrations with payment information (both ELPT and Course)
 $filter_status = $_GET['status'] ?? 'all';
+$filter_service = $_GET['service'] ?? 'all';
 $filter_date = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
 
-$sql = "
-    SELECT r.*, u.name, u.nim, u.no_telpon, u.program, u.faculty, u.level
-    FROM elpt_registrations r 
-    JOIN users u ON r.user_id = u.id 
-    WHERE 1=1
-";
+$registrations = [];
 
-$params = [];
+// Get ELPT registrations (only if service filter allows)
+if ($filter_service === 'all' || $filter_service === 'elpt') {
+    $sql_elpt = "
+        SELECT r.id, r.user_id, r.test_date, r.time_slot, r.purpose, r.payment_status,
+               r.billing_number, r.created_at, r.updated_at, r.payment_proof_file, r.payment_proof_uploaded_at,
+               u.name, u.nim, u.no_telpon, u.program, u.faculty, u.level,
+               'elpt' as payment_type, 'ELPT Test' as service_name
+        FROM elpt_registrations r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE 1=1
+    ";
 
-if ($filter_status !== 'all') {
-    $sql .= " AND r.payment_status = ?";
-    $params[] = $filter_status;
+    $params_elpt = [];
+
+    if ($filter_status !== 'all') {
+        $sql_elpt .= " AND r.payment_status = ?";
+        $params_elpt[] = $filter_status;
+    }
+
+    if (!empty($filter_date)) {
+        $sql_elpt .= " AND r.test_date = ?";
+        $params_elpt[] = $filter_date;
+    }
+
+    if (!empty($search)) {
+        $sql_elpt .= " AND (u.name LIKE ? OR u.nim LIKE ? OR r.billing_number LIKE ?)";
+        $search_param = '%' . $search . '%';
+        $params_elpt[] = $search_param;
+        $params_elpt[] = $search_param;
+        $params_elpt[] = $search_param;
+    }
+
+    $stmt_elpt = $pdo->prepare($sql_elpt);
+    $stmt_elpt->execute($params_elpt);
+    $elpt_registrations = $stmt_elpt->fetchAll();
+    $registrations = array_merge($registrations, $elpt_registrations);
 }
 
-if (!empty($filter_date)) {
-    $sql .= " AND r.test_date = ?";
-    $params[] = $filter_date;
+// Get course registrations (only if service filter allows)
+if ($filter_service === 'all' || $filter_service === 'course') {
+    $sql_course = "
+        SELECT c.id, c.user_id, c.final_test_date as test_date, NULL as time_slot,
+               'Kursus Persiapan ELPT' as purpose, 
+               COALESCE(c.payment_status, 'pending') as payment_status,
+               CONCAT('COURSE-', YEAR(c.created_at), MONTH(c.created_at), '-', LPAD(c.id, 4, '0')) as billing_number,
+               c.created_at, c.updated_at, c.payment_proof_file, c.payment_proof_uploaded_at,
+               u.name, u.nim, u.no_telpon, u.program, u.faculty, u.level,
+               'course' as payment_type, 'Kursus Persiapan' as service_name
+        FROM courses c
+        JOIN users u ON c.user_id = u.id 
+        WHERE c.payment_status IS NOT NULL
+    ";
+
+    $params_course = [];
+
+    if ($filter_status !== 'all') {
+        $sql_course .= " AND c.payment_status = ?";
+        $params_course[] = $filter_status;
+    }
+
+    if (!empty($search)) {
+        $search_param = $search_param ?? '%' . $search . '%';
+        $sql_course .= " AND (u.name LIKE ? OR u.nim LIKE ?)";
+        $params_course[] = $search_param;
+        $params_course[] = $search_param;
+    }
+
+    $stmt_course = $pdo->prepare($sql_course);
+    $stmt_course->execute($params_course);
+    $course_registrations = $stmt_course->fetchAll();
+    $registrations = array_merge($registrations, $course_registrations);
 }
 
-if (!empty($search)) {
-    $sql .= " AND (u.name LIKE ? OR u.nim LIKE ? OR r.billing_number LIKE ?)";
-    $search_param = '%' . $search . '%';
-    $params[] = $search_param;
-    $params[] = $search_param;
-    $params[] = $search_param;
-}
+// Sort by created_at
+usort($registrations, function($a, $b) {
+    return strtotime($b['created_at']) - strtotime($a['created_at']);
+});
 
-$sql .= " ORDER BY r.created_at DESC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$registrations = $stmt->fetchAll();
-
-// Get statistics
+// Get statistics for both ELPT and courses
 $stats = [];
+
+// ELPT stats
 $stmt = $pdo->query("
     SELECT payment_status, COUNT(*) as count 
     FROM elpt_registrations 
     GROUP BY payment_status
 ");
 while ($row = $stmt->fetch()) {
-    $stats[$row['payment_status']] = $row['count'];
+    $stats[$row['payment_status']] = ($stats[$row['payment_status']] ?? 0) + $row['count'];
+}
+
+// Course stats
+$stmt = $pdo->query("
+    SELECT payment_status, COUNT(*) as count 
+    FROM courses 
+    WHERE payment_status IS NOT NULL
+    GROUP BY payment_status
+");
+while ($row = $stmt->fetch()) {
+    $stats[$row['payment_status']] = ($stats[$row['payment_status']] ?? 0) + $row['count'];
 }
 
 // Get available test dates
@@ -175,16 +260,25 @@ $available_dates = $stmt->fetchAll();
                 <div class="card mb-4">
                     <div class="card-body">
                         <form method="GET" class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label">Filter Layanan</label>
+                                <select name="service" class="form-select">
+                                    <option value="all" <?= ($_GET['service'] ?? 'all') === 'all' ? 'selected' : '' ?>>Semua Layanan</option>
+                                    <option value="elpt" <?= ($_GET['service'] ?? '') === 'elpt' ? 'selected' : '' ?>>ELPT Only</option>
+                                    <option value="course" <?= ($_GET['service'] ?? '') === 'course' ? 'selected' : '' ?>>Kursus Only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label class="form-label">Filter Status</label>
                                 <select name="status" class="form-select">
                                     <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>Semua Status</option>
+                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Pending</option>
                                     <option value="confirmed" <?= $filter_status === 'confirmed' ? 'selected' : '' ?>>Menunggu Upload</option>
                                     <option value="payment_uploaded" <?= $filter_status === 'payment_uploaded' ? 'selected' : '' ?>>Bukti Terupload</option>
                                     <option value="payment_verified" <?= $filter_status === 'payment_verified' ? 'selected' : '' ?>>Dikonfirmasi</option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Pencarian</label>
                                 <input type="text" name="search" class="form-control" placeholder="Nama, NIM, atau Billing Number" value="<?= htmlspecialchars($search) ?>">
                             </div>
@@ -219,7 +313,7 @@ $available_dates = $stmt->fetchAll();
                                         <tr>
                                             <th>Mahasiswa</th>
                                             <th>Kontak</th>
-                                            <th>Tes Info</th>
+                                            <th>Layanan</th>
                                             <th>Billing</th>
                                             <th>Bukti Bayar</th>
                                             <th>Status</th>
@@ -246,14 +340,26 @@ $available_dates = $stmt->fetchAll();
                                                 </td>
                                                 <td>
                                                     <div>
-                                                        <strong><?= formatDate($reg['test_date']) ?></strong><br>
-                                                        <small class="text-muted"><?= formatTimeSlot($reg['time_slot'], $reg['test_date']) ?></small><br>
-                                                        <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
+                                                        <span class="badge <?= $reg['payment_type'] === 'elpt' ? 'bg-primary' : 'bg-success' ?>">
+                                                            <?= strtoupper($reg['payment_type']) ?>
+                                                        </span><br>
+                                                        <?php if ($reg['payment_type'] === 'elpt'): ?>
+                                                            <strong><?= formatDate($reg['test_date']) ?></strong><br>
+                                                            <small class="text-muted"><?= formatTimeSlot($reg['time_slot'], $reg['test_date']) ?></small><br>
+                                                            <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
+                                                        <?php else: ?>
+                                                            <strong>Kursus Persiapan ELPT</strong><br>
+                                                            <?php if ($reg['test_date']): ?>
+                                                                <small class="text-muted">Final Test: <?= formatDate($reg['test_date']) ?></small>
+                                                            <?php endif; ?>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <code class="bg-light p-1 rounded"><?= htmlspecialchars($reg['billing_number']) ?></code><br>
-                                                    <small class="text-success fw-bold"><?= formatCurrency(ELPT_FEE) ?></small>
+                                                    <small class="text-success fw-bold">
+                                                        <?= formatCurrency($reg['payment_type'] === 'elpt' ? ELPT_FEE : COURSE_FEE) ?>
+                                                    </small>
                                                 </td>
                                                 <td>
                                                     <?php if ($reg['payment_proof_file']): ?>
@@ -281,6 +387,7 @@ $available_dates = $stmt->fetchAll();
                                                                     data-bs-toggle="modal" 
                                                                     data-bs-target="#confirmModal"
                                                                     data-registration-id="<?= $reg['id'] ?>"
+                                                                    data-payment-type="<?= $reg['payment_type'] ?>"
                                                                     data-student-name="<?= htmlspecialchars($reg['name']) ?>"
                                                                     data-proof-file="../<?= htmlspecialchars($reg['payment_proof_file']) ?>">
                                                                 <i class="bi bi-check-circle"></i> Konfirmasi
@@ -289,6 +396,7 @@ $available_dates = $stmt->fetchAll();
                                                                     data-bs-toggle="modal" 
                                                                     data-bs-target="#rejectModal"
                                                                     data-registration-id="<?= $reg['id'] ?>"
+                                                                    data-payment-type="<?= $reg['payment_type'] ?>"
                                                                     data-student-name="<?= htmlspecialchars($reg['name']) ?>">
                                                                 <i class="bi bi-x-circle"></i> Tolak
                                                             </button>
@@ -317,10 +425,10 @@ $available_dates = $stmt->fetchAll();
                             </div>
                             <div class="card-body">
                                 <ol class="mb-0">
-                                    <li>Mahasiswa daftar ELPT (otomatis dikonfirmasi jika slot tersedia)</li>
+                                    <li>Mahasiswa daftar ELPT/Kursus</li>
                                     <li>Mahasiswa upload bukti pembayaran</li>
                                     <li>Admin konfirmasi pembayaran</li>
-                                    <li>Mahasiswa hadir pada jadwal tes</li>
+                                    <li>Layanan diaktifkan</li>
                                 </ol>
                             </div>
                         </div>
@@ -333,9 +441,9 @@ $available_dates = $stmt->fetchAll();
                             <div class="card-body">
                                 <ul class="mb-0">
                                     <li>Periksa bukti pembayaran dengan teliti</li>
-                                    <li>Pastikan nominal sesuai (<?= formatCurrency(ELPT_FEE) ?>)</li>
+                                    <li>ELPT: <?= formatCurrency(ELPT_FEE) ?></li>
+                                    <li>Kursus: <?= formatCurrency(COURSE_FEE) ?></li>
                                     <li>Konfirmasi jika pembayaran valid</li>
-                                    <li>Tolak jika bukti tidak jelas/nominal salah</li>
                                 </ul>
                             </div>
                         </div>
@@ -359,6 +467,7 @@ $available_dates = $stmt->fetchAll();
                     <div class="modal-body">
                         <input type="hidden" name="action" value="confirm_payment">
                         <input type="hidden" name="registration_id" id="confirm_registration_id">
+                        <input type="hidden" name="payment_type" id="confirm_payment_type">
                         
                         <div class="alert alert-info">
                             <h6><i class="bi bi-person me-2"></i>Mahasiswa: <span id="confirm_student_name"></span></h6>
@@ -377,7 +486,7 @@ $available_dates = $stmt->fetchAll();
                         
                         <div class="alert alert-success">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>Setelah dikonfirmasi:</strong> Status pembayaran akan berubah menjadi "DIKONFIRMASI" dan mahasiswa akan mendapat notifikasi untuk hadir pada jadwal tes.
+                            <strong>Setelah dikonfirmasi:</strong> Status pembayaran akan berubah menjadi "DIKONFIRMASI" dan layanan akan diaktifkan.
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -405,6 +514,7 @@ $available_dates = $stmt->fetchAll();
                     <div class="modal-body">
                         <input type="hidden" name="action" value="reject_payment">
                         <input type="hidden" name="registration_id" id="reject_registration_id">
+                        <input type="hidden" name="payment_type" id="reject_payment_type">
                         
                         <div class="alert alert-warning">
                             <h6><i class="bi bi-person me-2"></i>Mahasiswa: <span id="reject_student_name"></span></h6>
@@ -418,7 +528,7 @@ $available_dates = $stmt->fetchAll();
                         
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle me-2"></i>
-                            <strong>Setelah ditolak:</strong> Status akan kembali ke "MENUNGGU UPLOAD" dan mahasiswa dapat mengupload ulang bukti pembayaran.
+                            <strong>Setelah ditolak:</strong> Status akan kembali dan mahasiswa dapat mengupload ulang bukti pembayaran.
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -439,10 +549,12 @@ $available_dates = $stmt->fetchAll();
             if (e.target.closest('.confirm-payment-btn')) {
                 const btn = e.target.closest('.confirm-payment-btn');
                 const registrationId = btn.getAttribute('data-registration-id');
+                const paymentType = btn.getAttribute('data-payment-type');
                 const studentName = btn.getAttribute('data-student-name');
                 const proofFile = btn.getAttribute('data-proof-file');
                 
                 document.getElementById('confirm_registration_id').value = registrationId;
+                document.getElementById('confirm_payment_type').value = paymentType;
                 document.getElementById('confirm_student_name').textContent = studentName;
                 
                 // Handle different file types
@@ -470,9 +582,11 @@ $available_dates = $stmt->fetchAll();
             if (e.target.closest('.reject-payment-btn')) {
                 const btn = e.target.closest('.reject-payment-btn');
                 const registrationId = btn.getAttribute('data-registration-id');
+                const paymentType = btn.getAttribute('data-payment-type');
                 const studentName = btn.getAttribute('data-student-name');
                 
                 document.getElementById('reject_registration_id').value = registrationId;
+                document.getElementById('reject_payment_type').value = paymentType;
                 document.getElementById('reject_student_name').textContent = studentName;
             }
         });
@@ -496,18 +610,26 @@ $available_dates = $stmt->fetchAll();
 // Helper functions for payment status
 function getPaymentStatusBadge($status) {
     switch($status) {
+        case 'pending': return 'bg-warning text-dark';
         case 'confirmed': return 'bg-info text-white';
         case 'payment_uploaded': return 'bg-primary text-white';
         case 'payment_verified': return 'bg-success text-white';
+        case 'active': return 'bg-success text-white'; 
+        case 'completed': return 'bg-secondary text-white'; 
+        case 'rejected': return 'bg-danger text-white';
         default: return 'bg-secondary text-white';
     }
 }
 
 function getPaymentStatusText($status) {
     switch($status) {
+        case 'pending': return 'MENUNGGU';
         case 'confirmed': return 'MENUNGGU UPLOAD';
         case 'payment_uploaded': return 'BUKTI TERUPLOAD';
         case 'payment_verified': return 'DIKONFIRMASI';
+        case 'active': return 'AKTIF'; 
+        case 'completed': return 'SELESAI'; 
+        case 'rejected': return 'DITOLAK';
         default: return strtoupper($status);
     }
 }

@@ -40,7 +40,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             if (move_uploaded_file($file['tmp_name'], $file_path)) {
                 try {
-                    // Update registration with payment proof
+                    $pdo->beginTransaction();
+                    
+                    // 1. INSERT ke payment_proofs table
+                    $stmt = $pdo->prepare("
+                        INSERT INTO payment_proofs 
+                        (registration_id, file_name, file_path, file_size, file_type, status, ip_address, user_agent) 
+                        VALUES (?, ?, ?, ?, ?, 'uploaded', ?, ?)
+                    ");
+                    $stmt->execute([
+                        $registration_id,
+                        $file_name,
+                        $relative_path,
+                        $file['size'],
+                        $file['type'],
+                        $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+                        $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'
+                    ]);
+                    
+                    // 2. UPDATE elpt_registrations (seperti sebelumnya)
                     $stmt = $pdo->prepare("
                         UPDATE elpt_registrations 
                         SET payment_status = 'payment_uploaded', 
@@ -50,10 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     ");
                     $stmt->execute([$relative_path, $registration_id]);
                     
+                    // 3. Log activity
+                    logActivity('payment_proof_upload', "Uploaded payment proof for registration ID: $registration_id");
+                    
+                    $pdo->commit();
+                    
                     showAlert('Bukti pembayaran berhasil diupload! Menunggu konfirmasi admin.', 'success');
                     header('Location: elpt-registration.php');
                     exit;
+                    
                 } catch (PDOException $e) {
+                    $pdo->rollBack();
                     unlink($file_path); // Delete uploaded file if database update fails
                     $errors[] = 'Gagal menyimpan ke database: ' . $e->getMessage();
                 }
