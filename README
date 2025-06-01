@@ -1,55 +1,47 @@
-# 🎓 UPA Bahasa UPNVJ
+🎓 Sistem UPA Bahasa UPNVJ
+Sistem Manajemen English Language Proficiency Test (ELPT) Terintegrasi SIAKAD
+Platform digital untuk mengelola tes kemampuan bahasa Inggris dan kursus persiapan di Universitas Pembangunan Nasional Veteran Jakarta.
 
-**English Language Proficiency Test (ELPT) Management System**
 
-A comprehensive web-based platform for managing English language testing and preparation courses at UPN Veteran Jakarta University.
+📖 Tentang Project
+Sistem UPA Bahasa UPNVJ adalah solusi digital yang terintegrasi dengan SIAKAD UPNVJ untuk mengelola seluruh proses ELPT - mulai dari pendaftaran mahasiswa hingga penerbitan sertifikat. Dikembangkan dengan tujuan sistem terpusat dan sinkronisasi data real-time dengan database akademik universitas.
 
----
 
-## 📖 About
+🎯 Tujuan Utama
 
-UPA Bahasa UPNVJ is a digital solution that streamlines the entire ELPT process - from student registration to certificate issuance. Built specifically for UPN Veteran Jakarta's Academic Language Service Unit, this system modernizes language proficiency assessment and course management.
+🔗 Integrasi SIAKAD - Validasi NIM dan sinkronisasi data mahasiswa real-time
+🏢 Sistem Terpusat - Database dan reporting terpusat untuk seluruh universitas
+📊 Standarisasi Proses - Workflow seragam di semua fakultas
+⚡ Otomatisasi - Reduce manual process dan human error
 
-## ✨ Key Features
 
-### 👨‍🎓 For Students
-- **Easy ELPT Registration** - Online booking with flexible time slots
-- **Real-time Results** - View detailed score breakdowns with interactive charts
-- **Digital Certificates** - Automatic PDF generation for passing scores
-- **Course Enrollment** - 24-session preparation program with progress tracking
-- **Payment Management** - Secure payment proof upload and verification
+✨ Fitur Utama
 
-### 👨‍💼 For Administrators
-- **Registration Management** - Approve, modify, and track all test registrations
-- **Payment Verification** - Streamlined payment confirmation workflow
-- **Score Input System** - Efficient test result entry with validation
-- **Student Analytics** - Comprehensive student data with export capabilities
-- **Course Monitoring** - Track student progress through preparation courses
+👨‍🎓 Mahasiswa
 
-## 🛠️ Technology Stack
+Pendaftaran Online - Booking ELPT dengan slot waktu fleksibel
+Hasil Real-time - Lihat skor detail dengan visualisasi grafik
+Sertifikat Digital - Download PDF otomatis untuk skor lulus
+Kursus Persiapan - Program 24 sesi dengan progress tracking
+Upload Pembayaran - Verifikasi bukti bayar yang aman
 
-- **Frontend:** HTML5, CSS3, Bootstrap 5, JavaScript, Chart.js
-- **Backend:** PHP 8.0+, MySQL 5.7+
-- **Features:** Responsive design, DataTables, PDF generation, File uploads
-- **Security:** Password hashing, SQL injection prevention, Role-based access
+👨‍💼 Administrator
 
-## 📱 Features Showcase
+Manajemen Pendaftaran - Approve dan tracking semua registrasi
+Verifikasi Pembayaran - Workflow konfirmasi pembayaran streamlined
+Input Nilai - Entry hasil tes dengan validasi otomatis
+Export Data - Laporan Excel, CSV, PDF untuk reporting
+Dashboard Analytics - Statistik dan trend analysis
 
-- **Responsive Design** - Works perfectly on desktop, tablet, and mobile
-- **Real-time Updates** - Live payment status and registration confirmations
-- **Data Export** - Excel, CSV, and PDF export capabilities
-- **Certificate Generation** - Professional PDF certificates with security features
-- **Analytics Dashboard** - Comprehensive reporting for administrators
+🔗 Integrasi SIAKAD
 
-## 🔒 Security Features
+Validasi NIM - Verifikasi otomatis dengan database SIAKAD
+Data Mahasiswa - Auto-populate program studi dan fakultas
+Status Akademik - Cek status mahasiswa aktif real-time
+Audit Trail - Log semua aktivitas untuk compliance
 
-- Role-based access control (Admin/Student)
-- Password encryption (bcrypt)
-- SQL injection prevention
-- File upload validation
-- Session management
-- CSRF protection
-
-**Made with ❤️ for UPN Veteran Jakarta**
-
-*Enhancing English language proficiency through technology*
+🛠️ Tech Stack
+Frontend: HTML5, CSS3, Bootstrap 5, JavaScript, Chart.js
+Backend:  PHP 8.0+, MySQL 5.7+, RESTful API
+Security: Role-based Access, bcrypt, SQL Injection Prevention
+Integration: SIAKAD API, JSON Data Exchange
