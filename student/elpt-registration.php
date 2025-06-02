@@ -378,7 +378,7 @@ while ($start_date <= $end_date) {
                                                 <div class="col-md-6">
                                                     <strong>Lokasi Tes:</strong><br>
                                                     Gedung RA Kartini Lt. 3<br>
-                                                    Ruang 301/302/303<br>
+                                                    Ruang 301<br>
                                                     Universitas Pembangunan Nasional "Veteran" Jakarta
                                                 </div>
                                                 <div class="col-md-6">
@@ -394,7 +394,6 @@ while ($start_date <= $end_date) {
                                             <ul class="mb-0">
                                                 <li>Kartu identitas (KTM/KTP)</li>
                                                 <li>Alat tulis (pensil 2B, penghapus)</li>
-                                                <li>Bukti pembayaran (print/screenshot)</li>
                                             </ul>
                                         </div>
                                     <?php endif; ?>

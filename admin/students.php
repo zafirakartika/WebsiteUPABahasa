@@ -9,42 +9,14 @@ if (isset($_GET['action'])) {
     $student_id = $_GET['id'] ?? null;
     
     switch ($action) {
-        case 'activate':
-            if ($student_id) {
-                $stmt = $pdo->prepare("UPDATE users SET is_active = 1 WHERE id = ? AND role = 'student'");
-                $stmt->execute([$student_id]);
-                showAlert('Mahasiswa berhasil diaktifkan', 'success');
-            }
-            break;
-            
-        case 'deactivate':
-            if ($student_id) {
-                $stmt = $pdo->prepare("UPDATE users SET is_active = 0 WHERE id = ? AND role = 'student'");
-                $stmt->execute([$student_id]);
-                showAlert('Mahasiswa berhasil dinonaktifkan', 'warning');
-            }
-            break;
-            
         case 'delete':
             if ($student_id) {
                 try {
-                    $pdo->beginTransaction();
-                    
-                    // Delete course data for this student
-                    $stmt = $pdo->prepare("DELETE FROM courses WHERE user_id = ?");
+                    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'student'");
                     $stmt->execute([$student_id]);
-                    
-                    // Delete ELPT registrations for this student 
-                    // (this will automatically delete related elpt_results and payment_proofs due to CASCADE constraints)
-                    $stmt = $pdo->prepare("DELETE FROM elpt_registrations WHERE user_id = ?");
-                    $stmt->execute([$student_id]);
-                    
-                    $pdo->commit();
-                    showAlert('Data pendaftaran dan hasil tes mahasiswa berhasil dihapus. Akun mahasiswa tetap aktif.', 'success');
+                    showAlert('Data mahasiswa berhasil dihapus', 'success');
                 } catch (PDOException $e) {
-                    $pdo->rollBack();
-                    error_log("Delete student data error: " . $e->getMessage());
-                    showAlert('Terjadi kesalahan saat menghapus data mahasiswa', 'error');
+                    showAlert('Tidak dapat menghapus mahasiswa yang memiliki data terkait', 'error');
                 }
             }
             break;
@@ -54,12 +26,11 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-// Handle student update (including course status)
+// Handle student update (including course status) - UPDATED: Remove nim and email from update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_student') {
     $student_id = $_POST['student_id'] ?? null;
     $name = sanitizeInput($_POST['name'] ?? '');
-    $email = sanitizeInput($_POST['email'] ?? '');
-    $nim = sanitizeInput($_POST['nim'] ?? '');
+    // REMOVED: $email and $nim from POST data processing
     $program = sanitizeInput($_POST['program'] ?? '');
     $faculty = sanitizeInput($_POST['faculty'] ?? '');
     $level = $_POST['level'] ?? '';
@@ -74,23 +45,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     $errors = [];
     
-    // Validation
+    // Validation - UPDATED: Remove email and nim validation
     if (empty($name)) $errors[] = 'Nama tidak boleh kosong';
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Email tidak valid';
-    if (empty($nim)) $errors[] = 'NIM tidak boleh kosong';
     if ($current_session < 0 || $current_session > $total_sessions) $errors[] = 'Sesi saat ini tidak valid';
     
     if (empty($errors)) {
         try {
             $pdo->beginTransaction();
             
-            // Update user data
+            // Update user data - UPDATED: Remove email and nim from UPDATE query
             $stmt = $pdo->prepare("
                 UPDATE users SET 
-                name = ?, email = ?, nim = ?, program = ?, faculty = ?, level = ?, no_telpon = ?, is_active = ?
+                name = ?, program = ?, faculty = ?, level = ?, no_telpon = ?, is_active = ?
                 WHERE id = ? AND role = 'student'
             ");
-            $stmt->execute([$name, $email, $nim, $program, $faculty, $level, $no_telpon, $is_active, $student_id]);
+            $stmt->execute([$name, $program, $faculty, $level, $no_telpon, $is_active, $student_id]);
             
             // Handle course data
             if (!empty($course_status)) {
@@ -154,11 +123,6 @@ $sql = "
     LEFT JOIN elpt_results res ON u.id = res.user_id
     LEFT JOIN courses c ON u.id = c.user_id
     WHERE u.role = 'student'
-    AND (
-        er.id IS NOT NULL OR 
-        res.id IS NOT NULL OR 
-        c.id IS NOT NULL
-    )
 ";
 
 $params = [];
@@ -223,6 +187,35 @@ $stats['new_today'] = $stmt->fetch()['count'];
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="../assets/css/custom.css" rel="stylesheet">
     <link href="../assets/css/admin.css" rel="stylesheet">
+    
+    <!-- ADDED: Custom CSS for readonly fields styling -->
+    <style>
+        .readonly-field {
+            background-color: #f8f9fa !important;
+            border-color: #e9ecef !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+        }
+        
+        .readonly-field:focus {
+            background-color: #f8f9fa !important;
+            border-color: #e9ecef !important;
+            box-shadow: none !important;
+        }
+        
+        .readonly-label {
+            color: #6c757d;
+            font-weight: normal;
+        }
+        
+        .readonly-notice {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 <body class="bg-light">
     <div class="container-fluid">
@@ -237,7 +230,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                     <h2 class="fw-bold">Data Mahasiswa</h2>
                     <div class="d-flex gap-2">
                         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <i class="bi bi-download me-2"></i>Ekspor Data
+                            <i class="bi bi-download me-2"></i>Export Data
                         </button>
                         <a href="dashboard.php" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left me-2"></i>Kembali
@@ -459,19 +452,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                                                 data-student='<?= json_encode($student) ?>'>
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
-                                                        <?php if ($student['is_active']): ?>
-                                                            <a href="?action=deactivate&id=<?= $student['id'] ?>" 
-                                                               class="btn btn-outline-warning confirm-action"
-                                                               data-message="Nonaktifkan mahasiswa ini?">
-                                                                <i class="bi bi-pause"></i>
-                                                            </a>
-                                                        <?php else: ?>
-                                                            <a href="?action=activate&id=<?= $student['id'] ?>" 
-                                                               class="btn btn-outline-success confirm-action"
-                                                               data-message="Aktifkan mahasiswa ini?">
-                                                                <i class="bi bi-play"></i>
-                                                            </a>
-                                                        <?php endif; ?>
                                                         <a href="?action=delete&id=<?= $student['id'] ?>" 
                                                            class="btn btn-outline-danger confirm-action"
                                                            data-message="Hapus mahasiswa ini? Data tidak dapat dikembalikan!">
@@ -511,7 +491,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
         </div>
     </div>
 
-    <!-- Edit Student Modal -->
+    <!-- UPDATED: Edit Student Modal with readonly NIM and Email -->
     <div class="modal fade" id="editStudentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -541,21 +521,32 @@ $stats['new_today'] = $stmt->fetch()['count'];
                         </ul>
                         
                         <div class="tab-content mt-3" id="editTabsContent">
-                            <!-- Student Info Tab -->
+                            <!-- Student Info Tab - UPDATED: Make NIM and Email readonly -->
                             <div class="tab-pane fade show active" id="student-info" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Nama Lengkap</label>
                                         <input type="text" class="form-control" name="name" id="edit_name" required>
                                     </div>
+                                    
+                                    <!-- UPDATED: Email field made readonly -->
                                     <div class="col-md-6">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" name="email" id="edit_email" required>
+                                        <label class="form-label readonly-label">
+                                            Email 
+                                            <i class="bi bi-lock-fill text-muted ms-1" title="Tidak dapat diubah"></i>
+                                        </label>
+                                        <input type="email" class="form-control readonly-field" id="edit_email" readonly tabindex="-1">
                                     </div>
+                                    
+                                    <!-- UPDATED: NIM field made readonly -->
                                     <div class="col-md-6">
-                                        <label class="form-label">NIM</label>
-                                        <input type="text" class="form-control" name="nim" id="edit_nim" required>
+                                        <label class="form-label readonly-label">
+                                            NIM 
+                                            <i class="bi bi-lock-fill text-muted ms-1" title="Tidak dapat diubah"></i>
+                                        </label>
+                                        <input type="text" class="form-control readonly-field" id="edit_nim" readonly tabindex="-1">
                                     </div>
+                                    
                                     <div class="col-md-6">
                                         <label class="form-label">No. Telepon</label>
                                         <input type="text" class="form-control" name="no_telpon" id="edit_no_telpon">
@@ -655,14 +646,14 @@ $stats['new_today'] = $stmt->fetch()['count'];
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">
-                        <i class="bi bi-download me-2"></i>Ekspor Data Mahasiswa
+                        <i class="bi bi-download me-2"></i>Export Data Mahasiswa
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="exportForm" method="GET" action="export-students.php" target="_blank">
                         <div class="mb-3">
-                            <label class="form-label">Format Ekspor</label>
+                            <label class="form-label">Format Export</label>
                             <select class="form-select" name="format" required>
                                 <option value="excel">Excel (.xlsx)</option>
                                 <option value="csv">CSV (.csv)</option>
@@ -878,7 +869,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 document.getElementById('studentDetailContent').innerHTML = content;
             });
 
-            // Edit Student Modal Handler
+            // UPDATED: Edit Student Modal Handler - populate readonly fields
             $('#editStudentModal').on('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 const student = JSON.parse(button.getAttribute('data-student'));
@@ -886,8 +877,11 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 // Populate student data
                 document.getElementById('edit_student_id').value = student.id;
                 document.getElementById('edit_name').value = student.name;
+                
+                // UPDATED: Populate readonly fields (email and nim) but don't include in form submission
                 document.getElementById('edit_email').value = student.email;
                 document.getElementById('edit_nim').value = student.nim;
+                
                 document.getElementById('edit_no_telpon').value = student.no_telpon || '';
                 document.getElementById('edit_level').value = student.level || '';
                 document.getElementById('edit_program').value = student.program || '';
@@ -952,7 +946,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 }
             });
 
-            // Form submission handler
+            // UPDATED: Form submission handler - prevent readonly fields from being submitted
             $('#editStudentForm').on('submit', function(e) {
                 const current = parseInt(document.getElementById('edit_current_session').value) || 0;
                 const total = parseInt(document.getElementById('edit_total_sessions').value) || 24;
@@ -963,11 +957,42 @@ $stats['new_today'] = $stmt->fetch()['count'];
                     return false;
                 }
                 
+                // ADDED: Disable readonly fields before submission to prevent them from being sent
+                const emailField = document.getElementById('edit_email');
+                const nimField = document.getElementById('edit_nim');
+                
+                emailField.disabled = true;
+                nimField.disabled = true;
+                
                 // Show loading state
                 const submitBtn = this.querySelector('button[type="submit"]');
                 const originalText = submitBtn.innerHTML;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Menyimpan...';
                 submitBtn.disabled = true;
+                
+                // Re-enable readonly fields after a short delay (for user experience)
+                setTimeout(function() {
+                    emailField.disabled = false;
+                    nimField.disabled = false;
+                }, 100);
+            });
+
+            // ADDED: Prevent copy/paste and typing in readonly fields
+            $('#edit_email, #edit_nim').on('keydown paste cut', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // ADDED: Show tooltip when user tries to click readonly fields
+            $('#edit_email, #edit_nim').on('focus click', function() {
+                $(this).tooltip('dispose').tooltip({
+                    title: 'Field ini tidak dapat diubah karena merupakan kredensial login',
+                    placement: 'top'
+                }).tooltip('show');
+                
+                setTimeout(() => {
+                    $(this).tooltip('dispose');
+                }, 2000);
             });
 
             // Confirmation for actions
