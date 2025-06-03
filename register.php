@@ -378,7 +378,7 @@ function getSiakadData($nim) {
                         <i class="bi bi-key me-2"></i>Kode Registrasi Admin
                     </label>
                     <small class="text-muted mt-1">
-                        Untuk demo gunakan kode: <strong>ADMIN123</strong>
+                        Gunakan kode unik registrasi
                     </small>
                 </div>
 
