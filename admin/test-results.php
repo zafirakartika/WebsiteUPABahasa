@@ -1,4 +1,5 @@
 <?php
+// admin/test-results.php (Fixed version)
 require_once '../config/database.php';
 requireRole('admin');
 
@@ -30,8 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($errors)) {
         try {
-            // Get registration details
-            $stmt = $pdo->prepare("SELECT * FROM elpt_registrations WHERE id = ? AND payment_status = 'confirmed'");
+            // Get registration details (allow payment_verified status too)
+            $stmt = $pdo->prepare("SELECT * FROM elpt_registrations WHERE id = ? AND payment_status IN ('confirmed', 'payment_verified')");
             $stmt->execute([$registration_id]);
             $registration = $stmt->fetch();
             
@@ -85,13 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $filter_date = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
 
+// FIXED QUERY: Include both confirmed and payment_verified registrations
 $sql = "
     SELECT r.*, u.name, u.nim, u.program, u.faculty,
            er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score
     FROM elpt_registrations r 
     JOIN users u ON r.user_id = u.id 
     LEFT JOIN elpt_results er ON r.id = er.registration_id
-    WHERE r.payment_status = 'confirmed'
+    WHERE r.payment_status IN ('confirmed', 'payment_verified')
 ";
 
 $params = [];
@@ -114,8 +116,8 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $registrations = $stmt->fetchAll();
 
-// Get available test dates
-$stmt = $pdo->query("SELECT DISTINCT test_date FROM elpt_registrations WHERE payment_status = 'confirmed' ORDER BY test_date DESC");
+// Get available test dates (also include payment_verified)
+$stmt = $pdo->query("SELECT DISTINCT test_date FROM elpt_registrations WHERE payment_status IN ('confirmed', 'payment_verified') ORDER BY test_date DESC");
 $available_dates = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
@@ -198,10 +200,12 @@ $available_dates = $stmt->fetchAll();
                                         <tr>
                                             <th>Peserta</th>
                                             <th>Tanggal Tes</th>
+                                            <th>Status Bayar</th>
                                             <th>Listening</th>
                                             <th>Structure</th>
                                             <th>Reading</th>
                                             <th>Total</th>
+                                            <th>Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -219,6 +223,11 @@ $available_dates = $stmt->fetchAll();
                                                 <td>
                                                     <strong><?= formatDate($reg['test_date']) ?></strong><br>
                                                     <span class="badge bg-info"><?= htmlspecialchars($reg['purpose']) ?></span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?= $reg['payment_status'] === 'payment_verified' ? 'bg-success' : 'bg-warning text-dark' ?>">
+                                                        <?= strtoupper($reg['payment_status']) ?>
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     <?php if ($reg['result_id']): ?>
@@ -241,7 +250,15 @@ $available_dates = $stmt->fetchAll();
                                                         <span class="text-muted">-</span>
                                                     <?php endif; ?>
                                                 </td>
-                                                
+                                                <td>
+                                                    <?php if ($reg['result_id']): ?>
+                                                        <span class="badge <?= $reg['total_score'] >= 450 ? 'bg-success' : 'bg-warning text-dark' ?> fs-6">
+                                                            <?= $reg['total_score'] ?>
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">-</span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td>
                                                     <button type="button" class="btn btn-primary btn-sm" 
                                                             data-bs-toggle="modal" 

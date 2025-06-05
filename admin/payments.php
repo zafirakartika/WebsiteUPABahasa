@@ -478,9 +478,6 @@ $available_dates = $stmt->fetchAll();
                             <div class="text-center p-3 border rounded">
                                 <img id="confirm_proof_image" src="" alt="Bukti Pembayaran" class="img-fluid" style="max-height: 400px; display: none;">
                                 <iframe id="confirm_proof_pdf" src="" style="width: 100%; height: 400px; display: none;"></iframe>
-                                <a id="confirm_proof_link" href="" target="_blank" class="btn btn-primary">
-                                    <i class="bi bi-download me-2"></i>Download Bukti Pembayaran
-                                </a>
                             </div>
                         </div>
                         
