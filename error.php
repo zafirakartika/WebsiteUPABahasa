@@ -1,5 +1,4 @@
 <?php
-// error.php
 $error_code = $_GET['error'] ?? '404';
 $error_messages = [
     '400' => [

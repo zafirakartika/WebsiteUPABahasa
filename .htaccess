@@ -1,5 +1,4 @@
 # Simple .htaccess for UPA Bahasa UPNVJ local development
-# Place this file in your project root (where index.php is located)
 
 # Enable mod_rewrite
 <IfModule mod_rewrite.c>

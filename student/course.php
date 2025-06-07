@@ -299,7 +299,7 @@ while ($start_date <= $end_date) {
                                             <div class="col-md-6">
                                                 <strong>Rekening Tujuan:</strong><br>
                                                 <div class="bg-white p-2 rounded border">
-                                                    <strong>Bank BNI</strong><br>
+                                                    <strong>Biro Umum dan Keuangan UPNVJ</strong><br>
                                                     <code>1234567890</code><br>
                                                     <small>A.n. UPA Bahasa UPNVJ</small>
                                                 </div>

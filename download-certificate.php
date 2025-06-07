@@ -1,5 +1,5 @@
 <?php
-// download-certificate.php - Official UPNVJ ELPT Certificate (Fixed)
+// download-certificate.php - Official UPNVJ ELPT Certificate
 require_once 'config/database.php';
 requireLogin();
 

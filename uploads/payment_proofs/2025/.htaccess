@@ -1,5 +1,4 @@
 # Prevent direct access to uploaded files except for authorized users
-# Place this file in uploads/payment_proofs/.htaccess
 
 # Deny access to all files by default
 Order Deny,Allow
