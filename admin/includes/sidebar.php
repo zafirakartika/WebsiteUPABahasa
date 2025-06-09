@@ -1,6 +1,5 @@
 <?php
-// admin/includes/sidebar.php - Updated
-// Get current page for active state
+// admin/includes/sidebar.php
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 ?>
 
