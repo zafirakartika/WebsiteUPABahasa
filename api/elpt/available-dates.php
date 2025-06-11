@@ -1,5 +1,5 @@
 <?php
-// api/elpt/available-dates.php - Enhanced with time slot support
+// api/elpt/available-dates.php
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 header('Access-Control-Allow-Headers: Content-Type');

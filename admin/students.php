@@ -26,11 +26,10 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-// Handle student update (including course status) - UPDATED: Remove nim and email from update
+// Handle student update (including course status) 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_student') {
     $student_id = $_POST['student_id'] ?? null;
     $name = sanitizeInput($_POST['name'] ?? '');
-    // REMOVED: $email and $nim from POST data processing
     $program = sanitizeInput($_POST['program'] ?? '');
     $faculty = sanitizeInput($_POST['faculty'] ?? '');
     $level = $_POST['level'] ?? '';
@@ -45,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     $errors = [];
     
-    // Validation - UPDATED: Remove email and nim validation
+    // Validation
     if (empty($name)) $errors[] = 'Nama tidak boleh kosong';
     if ($current_session < 0 || $current_session > $total_sessions) $errors[] = 'Sesi saat ini tidak valid';
     
@@ -53,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         try {
             $pdo->beginTransaction();
             
-            // Update user data - UPDATED: Remove email and nim from UPDATE query
+            // Update user data 
             $stmt = $pdo->prepare("
                 UPDATE users SET 
                 name = ?, program = ?, faculty = ?, level = ?, no_telpon = ?, is_active = ?
@@ -188,7 +187,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
     <link href="../assets/css/custom.css" rel="stylesheet">
     <link href="../assets/css/admin.css" rel="stylesheet">
     
-    <!-- ADDED: Custom CSS for readonly fields styling -->
     <style>
         .readonly-field {
             background-color: #f8f9fa !important;
@@ -491,7 +489,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
         </div>
     </div>
 
-    <!-- UPDATED: Edit Student Modal with readonly NIM and Email -->
+    <!-- Edit Student Modal with readonly NIM and Email -->
     <div class="modal fade" id="editStudentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -521,7 +519,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                         </ul>
                         
                         <div class="tab-content mt-3" id="editTabsContent">
-                            <!-- Student Info Tab - UPDATED: Make NIM and Email readonly -->
+                            <!-- Student Info Tab -->
                             <div class="tab-pane fade show active" id="student-info" role="tabpanel">
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -529,7 +527,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                         <input type="text" class="form-control" name="name" id="edit_name" required>
                                     </div>
                                     
-                                    <!-- UPDATED: Email field made readonly -->
                                     <div class="col-md-6">
                                         <label class="form-label readonly-label">
                                             Email 
@@ -538,7 +535,6 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                         <input type="email" class="form-control readonly-field" id="edit_email" readonly tabindex="-1">
                                     </div>
                                     
-                                    <!-- UPDATED: NIM field made readonly -->
                                     <div class="col-md-6">
                                         <label class="form-label readonly-label">
                                             NIM 
@@ -869,7 +865,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 document.getElementById('studentDetailContent').innerHTML = content;
             });
 
-            // UPDATED: Edit Student Modal Handler - populate readonly fields
+            // Edit Student Modal Handler
             $('#editStudentModal').on('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 const student = JSON.parse(button.getAttribute('data-student'));
@@ -878,7 +874,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 document.getElementById('edit_student_id').value = student.id;
                 document.getElementById('edit_name').value = student.name;
                 
-                // UPDATED: Populate readonly fields (email and nim) but don't include in form submission
+                // Populate readonly fields (email and nim) but don't include in form submission
                 document.getElementById('edit_email').value = student.email;
                 document.getElementById('edit_nim').value = student.nim;
                 
@@ -946,7 +942,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 }
             });
 
-            // UPDATED: Form submission handler - prevent readonly fields from being submitted
+            //Form submission handler - prevent readonly fields from being submitted
             $('#editStudentForm').on('submit', function(e) {
                 const current = parseInt(document.getElementById('edit_current_session').value) || 0;
                 const total = parseInt(document.getElementById('edit_total_sessions').value) || 24;
@@ -957,7 +953,7 @@ $stats['new_today'] = $stmt->fetch()['count'];
                     return false;
                 }
                 
-                // ADDED: Disable readonly fields before submission to prevent them from being sent
+                // Disable readonly fields before submission to prevent them from being sent
                 const emailField = document.getElementById('edit_email');
                 const nimField = document.getElementById('edit_nim');
                 
@@ -977,13 +973,13 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 }, 100);
             });
 
-            // ADDED: Prevent copy/paste and typing in readonly fields
+            // Prevent copy/paste and typing in readonly fields
             $('#edit_email, #edit_nim').on('keydown paste cut', function(e) {
                 e.preventDefault();
                 return false;
             });
 
-            // ADDED: Show tooltip when user tries to click readonly fields
+            // Show tooltip when user tries to click readonly fields
             $('#edit_email, #edit_nim').on('focus click', function() {
                 $(this).tooltip('dispose').tooltip({
                     title: 'Field ini tidak dapat diubah karena merupakan kredensial login',

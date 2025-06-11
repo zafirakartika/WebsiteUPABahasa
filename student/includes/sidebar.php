@@ -1,6 +1,5 @@
 <?php
 // student/includes/sidebar.php
-// Get current page for active state
 $current_page = basename($_SERVER['PHP_SELF'], '.php');
 ?>
 

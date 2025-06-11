@@ -1,5 +1,5 @@
 <?php
-// admin/test-results.php (Fixed version)
+// admin/test-results.php
 require_once '../config/database.php';
 requireRole('admin');
 
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $filter_date = $_GET['date'] ?? '';
 $search = $_GET['search'] ?? '';
 
-// FIXED QUERY: Include both confirmed and payment_verified registrations
+// Include both confirmed and payment_verified registrations
 $sql = "
     SELECT r.*, u.name, u.nim, u.program, u.faculty,
            er.id as result_id, er.listening_score, er.structure_score, er.reading_score, er.total_score
@@ -116,7 +116,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $registrations = $stmt->fetchAll();
 
-// Get available test dates (also include payment_verified)
+// Get available test dates 
 $stmt = $pdo->query("SELECT DISTINCT test_date FROM elpt_registrations WHERE payment_status IN ('confirmed', 'payment_verified') ORDER BY test_date DESC");
 $available_dates = $stmt->fetchAll();
 ?>
