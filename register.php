@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Check if NIM already exists (for students)
+    // Check if NIM already exists 
     if (!$is_admin && !empty($nim) && empty($errors)) {
         try {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE nim = ?");
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Check if phone number already exists (for students)
+    // Check if phone number already exists
     if (!$is_admin && !empty($no_telpon) && empty($errors)) {
         try {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE no_telpon = ?");
@@ -167,17 +167,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Function to validate NIM with SIAKAD (simulation)
+// Function to validate NIM with SIAKAD
 function validateNimWithSiakad($nim) {
     // Simulate API call delay
     usleep(100000); // 0.1 second delay
     
-    // For demo purposes, validate based on patterns
+    // Validate based on patterns
     $valid_patterns = [
+        '23' => true, // 2022 batch
         '22' => true, // 2022 batch
         '21' => true, // 2021 batch
-        '20' => true, // 2020 batch
-        '19' => true, // 2019 batch
     ];
     
     $year_prefix = substr($nim, 0, 2);
@@ -522,7 +521,7 @@ function getSiakadData($nim) {
 
                 // For demo purposes, validate based on pattern
                 const year = nim.substring(0, 2);
-                const validYears = ['19', '20', '21', '22'];
+                const validYears = ['21', '22', '23'];
                 const isValid = validYears.includes(year);
 
                 if (isValid) {
