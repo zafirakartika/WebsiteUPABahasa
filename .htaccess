@@ -5,11 +5,11 @@
     RewriteEngine On
     
     # Set the base directory for localhost
-    # Adjust this based on your folder structure
-    # If your project is in xampp/htdocs/test/ then:
+    # Adjust this based on  folder structure
+    # If project is in xampp/htdocs/test/ then:
     RewriteBase /test/
     
-    # If your project is directly in xampp/htdocs/ then:
+    # If project is directly in xampp/htdocs/ then:
     # RewriteBase /
     
     # Prevent access to sensitive files and directories

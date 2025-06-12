@@ -392,7 +392,7 @@ while ($start_date <= $end_date) {
                                         <div class="alert alert-warning">
                                             <h6><i class="bi bi-exclamation-triangle me-2"></i>Yang Harus Dibawa:</h6>
                                             <ul class="mb-0">
-                                                <li>Kartu identitas (KTM/KTP)</li>
+                                                <li>Kartu identitas (KTM)</li>
                                                 <li>Alat tulis (pensil 2B, penghapus)</li>
                                             </ul>
                                         </div>

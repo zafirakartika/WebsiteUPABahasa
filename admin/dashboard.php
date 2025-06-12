@@ -31,15 +31,20 @@ $stmt = $pdo->query("
 ");
 $recent_registrations = $stmt->fetchAll();
 
-// Upcoming tests (next 7 days)
-$stmt = $pdo->query("
+// Get start and end of current week (Monday to Sunday)
+$today = new DateTime();
+$monday = clone $today->modify('monday this week');
+$sunday = clone $today->modify('sunday this week');
+
+$stmt = $pdo->prepare("
     SELECT test_date, COUNT(*) as count
     FROM elpt_registrations 
-    WHERE test_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-    AND payment_status = 'confirmed'
+    WHERE test_date BETWEEN ? AND ?
+    AND payment_status = 'payment_verified'
     GROUP BY test_date 
     ORDER BY test_date
 ");
+$stmt->execute([$monday->format('Y-m-d'), $sunday->format('Y-m-d')]);
 $upcoming_tests = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
