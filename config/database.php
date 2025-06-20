@@ -13,7 +13,7 @@ define('ELPT_FEE', 75000);
 define('COURSE_FEE', 850000);
 define('MIN_PASSING_SCORE', 450);
 
-// Error reporting for debugging (remove in production)
+// Error reporting for debugging 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -227,52 +227,27 @@ function formatCurrency($amount) {
 }
 
 /**
- * Get available test dates for next 30 days
+ * Get slot capacity for a specific date and time slot
  */
-function getAvailableTestDates($days = 30) {
-    $dates = [];
-    $start_date = new DateTime('+1 day');
-    $end_date = new DateTime("+{$days} days");
-    
-    while ($start_date <= $end_date) {
-        if (isValidTestDate($start_date->format('Y-m-d'))) {
-            $dates[] = [
-                'date' => $start_date->format('Y-m-d'),
-                'formatted' => $start_date->format('l, d F Y'),
-                'day' => $start_date->format('l')
-            ];
-        }
-        $start_date->modify('+1 day');
-    }
-    
-    return $dates;
-}
-
-/**
- * Check registration quota for a specific date
- */
-function checkRegistrationQuota($test_date) {
+function getSlotCapacity($test_date, $time_slot) {
     global $pdo;
-    
     try {
         $stmt = $pdo->prepare("
-            SELECT COUNT(*) as count 
+            SELECT COUNT(*) as current, 30 as max 
             FROM elpt_registrations 
-            WHERE test_date = ? 
-            AND payment_status IN ('pending', 'confirmed', 'payment_uploaded', 'payment_verified')
+            WHERE test_date = ? AND time_slot = ? AND status = 'confirmed'
         ");
-        $stmt->execute([$test_date]);
+        $stmt->execute([$test_date, $time_slot]);
         $result = $stmt->fetch();
         
-        $max_participants = getSystemSetting('max_participants_per_session', 30);
         return [
-            'current' => $result['count'],
-            'max' => $max_participants,
-            'available' => $result['count'] < $max_participants,
-            'remaining' => $max_participants - $result['count']
+            'current' => $result['current'],
+            'max' => $result['max'],
+            'available' => $result['current'] < $result['max'],
+            'remaining' => $result['max'] - $result['current']
         ];
     } catch (PDOException $e) {
-        error_log("Error checking registration quota: " . $e->getMessage());
+        error_log("Error getting slot capacity: " . $e->getMessage());
         return ['current' => 0, 'max' => 30, 'available' => true, 'remaining' => 30];
     }
 }
@@ -325,6 +300,85 @@ function getAvailableTimeSlots($test_date) {
 function isValidTimeSlot($time_slot, $test_date) {
     $available_slots = getAvailableTimeSlots($test_date);
     return array_key_exists($time_slot, $available_slots);
+}
+
+/**
+ * Function to validate NIM with SIAKAD (simulation)
+ */
+function validateNimWithSiakad($nim) {
+    // Simulate API call delay
+    usleep(100000); // 0.1 second delay
+    
+    // Validate based on patterns
+    $valid_patterns = [
+        '24' => true, // 2024 batch
+        '23' => true, // 2023 batch
+        '22' => true, // 2022 batch
+        '21' => true, // 2021 batch
+    ];
+    
+    $year_prefix = substr($nim, 0, 2);
+    
+    if (!isset($valid_patterns[$year_prefix])) {
+        return [
+            'valid' => false,
+            'message' => 'NIM tidak terdaftar di SIAKAD UPNVJ'
+        ];
+    }
+    
+    return [
+        'valid' => true,
+        'message' => 'NIM tervalidasi dengan SIAKAD UPNVJ'
+    ];
+}
+
+/**
+ * Function to get SIAKAD data (simulation)
+ */
+function getSiakadData($nim) {
+    // Simulate different programs based on NIM pattern
+    $programs = [
+        '221050' => [
+            'program' => 'Sistem Informasi', 
+            'level' => 'D3', 
+            'faculty' => 'Fakultas Ilmu Komputer'
+        ],
+        '221051' => [
+            'program' => 'Hubungan Internasional', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Sosial dan Ilmu Politik'
+        ],
+        '221052' => [
+            'program' => 'Manajemen', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ekonomi dan Bisnis'
+        ],
+        '221053' => [
+            'program' => 'Teknik Informatika', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Teknik'
+        ],
+        '211050' => [
+            'program' => 'Sistem Informasi', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Komputer'
+        ],
+        '231050' => [
+            'program' => 'Sistem Informasi', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Ilmu Komputer'
+        ],
+        '231051' => [
+            'program' => 'Teknik Informatika', 
+            'level' => 'S1', 
+            'faculty' => 'Fakultas Teknik'
+        ],
+    ];
+    
+    $nim_prefix = substr($nim, 0, 6);
+    
+    // Default to first program if pattern not found
+    return $programs[$nim_prefix] ?? $programs['221050'];
 }
 
 ?>

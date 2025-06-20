@@ -1,5 +1,6 @@
 <?php
 require_once 'config/database.php';
+require_once 'config/recaptcha.php'; // Include reCAPTCHA config
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -13,11 +14,13 @@ if (isLoggedIn()) {
 
 $errors = [];
 $success = '';
+$account_inactive = false; // Flag untuk notifikasi akun nonaktif 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $remember_me = isset($_POST['remember_me']);
+    $recaptcha_response = $_POST['g-recaptcha-response'] ?? '';
     
     // Validation
     if (empty($email)) {
@@ -30,31 +33,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Password diperlukan';
     }
     
+    // Verify reCAPTCHA
+    if (!verifyRecaptcha($recaptcha_response)) {
+        $errors[] = 'Silakan verifikasi bahwa Anda bukan robot';
+    }
+    
     // Attempt login if no validation errors
     if (empty($errors)) {
         try {
-            // Remove is_active check since it's not in the database
             $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             
             if ($user && password_verify($password, $user['password'])) {
-                // Login successful
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['user_name'] = $user['name'];
-                $_SESSION['user_role'] = $user['role'];
-                $_SESSION['user_email'] = $user['email'];
-                
-                // Redirect based on role
-                if ($user['role'] === 'admin') {
-                    header('Location: admin/dashboard.php');
+                // Check if account is active (only for students)
+                if ($user['role'] === 'student' && $user['is_active'] == 0) {
+                    $account_inactive = true;
+                    // Log failed login attempt due to inactive account
+                    logActivity('login_failed_inactive', 'Login attempt with inactive account: ' . $email);
                 } else {
-                    header('Location: student/dashboard.php');
+                    // Login successful
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['user_name'] = $user['name'];
+                    $_SESSION['user_role'] = $user['role'];
+                    $_SESSION['user_email'] = $user['email'];
+                    
+                    // Log successful login
+                    logActivity('user_login', 'User logged in successfully');
+                    
+                    // Redirect based on role
+                    if ($user['role'] === 'admin') {
+                        header('Location: admin/dashboard.php');
+                    } else {
+                        header('Location: student/dashboard.php');
+                    }
+                    exit;
                 }
-                exit;
                 
             } else {
                 $errors[] = 'Email atau password tidak valid';
+                // Log failed login attempt
+                logActivity('login_failed', 'Failed login attempt for email: ' . $email);
             }
             
         } catch (PDOException $e) {
@@ -73,6 +92,13 @@ if (isset($_GET['registered']) && $_GET['registered'] === 'true') {
 if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
     $success = 'Anda telah berhasil logout.';
 }
+
+// Check for account deactivated message
+if (isset($_GET['error']) && $_GET['error'] === 'account_deactivated') {
+    $success = ''; // Clear any success message
+    $account_inactive = true; // Show modal
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -84,6 +110,8 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
     <link href="assets/css/auth.css" rel="stylesheet">
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="auth-body">
     <!-- Back to Home -->
@@ -95,7 +123,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
     </div>
 
     <div class="login-container">
-        <div class="login-card">
+        <div class="login-card" id="loginCard">
             <div class="login-header">
                 <div class="text-primary mb-3">
                     <i class="bi bi-mortarboard" style="font-size: 3rem;"></i>
@@ -156,6 +184,11 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                     </label>
                 </div>
 
+                <!-- Google reCAPTCHA -->
+                <div class="mb-3 text-center">
+                    <div class="g-recaptcha" data-sitekey="<?= RECAPTCHA_SITE_KEY ?>"></div>
+                </div>
+
                 <button type="submit" class="btn btn-login text-white" id="loginBtn">
                     <span class="btn-text">
                         Login
@@ -175,6 +208,44 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
         </div>
     </div>
 
+    <!-- Modal untuk Akun Nonaktif -->
+    <div class="modal fade modal-inactive" id="inactiveAccountModal" tabindex="-1" aria-labelledby="inactiveAccountModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inactiveAccountModalLabel">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Akun Tidak Aktif
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <div class="warning-icon">
+                        <i class="bi bi-person-x-fill"></i>
+                    </div>
+                    <h4 class="text-danger mb-3">Tidak Dapat Login</h4>
+                    <p class="mb-4">
+                        Akun Anda saat ini dalam status <strong>nonaktif</strong>. 
+                        Silakan hubungi admin UPA Bahasa untuk mengaktifkan kembali akun Anda.
+                    </p>
+                    <div class="contact-info p-3 bg-light rounded mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-envelope me-2"></i>
+                            Email: admin@upabahasa.upnvj.ac.id<br>
+                            <i class="bi bi-telephone me-2"></i>
+                            Telepon: (021) 7656971
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-understand" data-bs-dismiss="modal">
+                        <i class="bi bi-check-lg me-2"></i>
+                        Saya Mengerti
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -182,6 +253,27 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
             const loginBtn = document.getElementById('loginBtn');
             const btnText = loginBtn.querySelector('.btn-text');
             const btnLoading = loginBtn.querySelector('.btn-loading');
+            const loginCard = document.getElementById('loginCard'); 
+
+            // Check if account is inactive and show modal
+            <?php if ($account_inactive): ?>
+                // Add shake animation to login card
+                loginCard.classList.add('shake-animation');
+                
+                // Show inactive account modal after shake animation
+                setTimeout(function() {
+                    var inactiveModal = new bootstrap.Modal(document.getElementById('inactiveAccountModal'), {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    inactiveModal.show();
+                    
+                    // Remove shake class after animation
+                    setTimeout(() => {
+                        loginCard.classList.remove('shake-animation');
+                    }, 820);
+                }, 100);
+            <?php endif; ?>
 
             // Auto-focus first empty field
             const emailField = document.getElementById('email');
@@ -197,6 +289,7 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
             form.addEventListener('submit', function(e) {
                 const email = emailField.value.trim();
                 const password = passwordField.value;
+                const recaptchaResponse = grecaptcha.getResponse();
 
                 // Basic client-side validation
                 if (!email) {
@@ -217,6 +310,13 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                     return;
                 }
 
+                // Validate reCAPTCHA
+                if (!recaptchaResponse) {
+                    e.preventDefault();
+                    alert('Silakan verifikasi bahwa Anda bukan robot');
+                    return;
+                }
+
                 // Clear any existing errors
                 clearFieldErrors();
 
@@ -234,6 +334,13 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                 } else {
                     clearFieldError(this);
                 }
+            });
+
+            // Clear errors on input
+            [emailField, passwordField].forEach(field => {
+                field.addEventListener('input', function() {
+                    clearFieldError(this);
+                });
             });
 
             // Utility functions
@@ -276,6 +383,37 @@ if (isset($_GET['logout']) && $_GET['logout'] === 'true') {
                     setTimeout(() => alert.remove(), 300);
                 }, 5000);
             });
+
+            // Modal event handlers
+            const inactiveModal = document.getElementById('inactiveAccountModal');
+            if (inactiveModal) {
+                inactiveModal.addEventListener('hidden.bs.modal', function () {
+                    // Clear password field when modal is closed for security
+                    document.getElementById('password').value = '';
+                    document.getElementById('email').focus();
+                    
+                    // Reset reCAPTCHA when modal is closed
+                    if (typeof grecaptcha !== 'undefined') {
+                        grecaptcha.reset();
+                    }
+                });
+
+                // Handle understand button click
+                const understandBtn = inactiveModal.querySelector('.btn-understand');
+                if (understandBtn) {
+                    understandBtn.addEventListener('click', function() {
+                        // Clear form and focus email field
+                        form.reset();
+                        clearFieldErrors();
+                        emailField.focus();
+                        
+                        // Reset reCAPTCHA
+                        if (typeof grecaptcha !== 'undefined') {
+                            grecaptcha.reset();
+                        }
+                    });
+                }
+            }
         });
     </script>
 </body>

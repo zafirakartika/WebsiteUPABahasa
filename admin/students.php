@@ -9,14 +9,31 @@ if (isset($_GET['action'])) {
     $student_id = $_GET['id'] ?? null;
     
     switch ($action) {
-        case 'delete':
+        case 'deactivate':
             if ($student_id) {
                 try {
-                    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ? AND role = 'student'");
+                    // First check current status
+                    $stmt = $pdo->prepare("SELECT is_active, name FROM users WHERE id = ? AND role = 'student'");
                     $stmt->execute([$student_id]);
-                    showAlert('Data mahasiswa berhasil dihapus', 'success');
+                    $student = $stmt->fetch();
+                    
+                    if ($student) {
+                        $new_status = $student['is_active'] ? 0 : 1;
+                        $action_text = $new_status ? 'diaktifkan' : 'dinonaktifkan';
+                        
+                        $stmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ? AND role = 'student'");
+                        $stmt->execute([$new_status, $student_id]);
+                        
+                        // Log activity
+                        logActivity('student_' . ($new_status ? 'activated' : 'deactivated'), 
+                                  "Student {$student['name']} has been " . ($new_status ? 'activated' : 'deactivated'));
+                        
+                        showAlert("Mahasiswa {$student['name']} berhasil {$action_text}", 'success');
+                    } else {
+                        showAlert('Mahasiswa tidak ditemukan', 'error');
+                    }
                 } catch (PDOException $e) {
-                    showAlert('Tidak dapat menghapus mahasiswa yang memiliki data terkait', 'error');
+                    showAlert('Terjadi kesalahan: ' . $e->getMessage(), 'error');
                 }
             }
             break;
@@ -213,6 +230,18 @@ $stats['new_today'] = $stmt->fetch()['count'];
             padding: 0.75rem;
             margin-bottom: 1rem;
         }
+
+        .status-toggle-btn {
+            min-width: 90px;
+        }
+
+        .data-protection-notice {
+            background: linear-gradient(45deg, #e3f2fd, #f3e5f5);
+            border: 1px solid #81c784;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -237,6 +266,20 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 </div>
 
                 <?php displayAlert(); ?>
+
+                <!-- Data Protection Notice -->
+                <div class="data-protection-notice">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-shield-check text-success me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h6 class="mb-1 text-success"><strong>Perlindungan Data Mahasiswa</strong></h6>
+                            <small class="text-muted">
+                                Data mahasiswa dilindungi dan tidak dapat dihapus permanen. Gunakan fitur <strong>Nonaktifkan</strong> untuk menonaktifkan akun mahasiswa.
+                                Data yang dinonaktifkan masih tersimpan dan dapat diaktifkan kembali kapan saja.
+                            </small>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Statistics Cards -->
                 <div class="row g-4 mb-4">
@@ -358,14 +401,18 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                     </thead>
                                     <tbody>
                                         <?php foreach ($students as $student): ?>
-                                            <tr>
+                                            <tr class="<?= $student['is_active'] ? '' : 'table-secondary' ?>">
                                                 <td>
                                                     <div class="d-flex align-items-center">
                                                         <div class="student-avatar bg-primary me-3">
                                                             <?= strtoupper(substr($student['name'], 0, 2)) ?>
                                                         </div>
                                                         <div>
-                                                            <strong><?= htmlspecialchars($student['name']) ?></strong><br>
+                                                            <strong><?= htmlspecialchars($student['name']) ?></strong>
+                                                            <?php if (!$student['is_active']): ?>
+                                                                <span class="badge bg-secondary ms-2">Nonaktif</span>
+                                                            <?php endif; ?>
+                                                            <br>
                                                             <small class="text-muted">NIM: <?= htmlspecialchars($student['nim']) ?></small>
                                                         </div>
                                                     </div>
@@ -441,19 +488,25 @@ $stats['new_today'] = $stmt->fetch()['count'];
                                                         <button class="btn btn-outline-primary" 
                                                                 data-bs-toggle="modal" 
                                                                 data-bs-target="#studentModal"
-                                                                data-student='<?= json_encode($student) ?>'>
+                                                                data-student='<?= json_encode($student) ?>'
+                                                                title="Lihat Detail">
                                                             <i class="bi bi-eye"></i>
                                                         </button>
                                                         <button class="btn btn-outline-warning" 
                                                                 data-bs-toggle="modal" 
                                                                 data-bs-target="#editStudentModal"
-                                                                data-student='<?= json_encode($student) ?>'>
+                                                                data-student='<?= json_encode($student) ?>'
+                                                                title="Edit Data">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
-                                                        <a href="?action=delete&id=<?= $student['id'] ?>" 
-                                                           class="btn btn-outline-danger confirm-action"
-                                                           data-message="Hapus mahasiswa ini? Data tidak dapat dikembalikan!">
-                                                            <i class="bi bi-trash"></i>
+                                                        <a href="?action=deactivate&id=<?= $student['id'] ?>" 
+                                                           class="btn <?= $student['is_active'] ? 'btn-outline-danger' : 'btn-outline-success' ?> confirm-action status-toggle-btn"
+                                                           data-message="<?= $student['is_active'] ? 'Nonaktifkan' : 'Aktifkan' ?> mahasiswa <?= htmlspecialchars($student['name']) ?>?"
+                                                           title="<?= $student['is_active'] ? 'Nonaktifkan' : 'Aktifkan' ?> Mahasiswa">
+                                                            <i class="bi bi-<?= $student['is_active'] ? 'person-x' : 'person-check' ?>"></i>
+                                                            <span class="d-none d-lg-inline ms-1">
+                                                                <?= $student['is_active'] ? 'Nonaktif' : 'Aktifkan' ?>
+                                                            </span>
                                                         </a>
                                                     </div>
                                                 </td>
@@ -991,11 +1044,28 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 }, 2000);
             });
 
-            // Confirmation for actions
+            // Enhanced confirmation for status toggle actions
             $('.confirm-action').on('click', function(e) {
                 e.preventDefault();
                 const message = this.getAttribute('data-message') || 'Apakah Anda yakin?';
-                if (confirm(message)) {
+                const isDeactivate = this.href.includes('action=deactivate');
+                
+                let confirmMessage = message;
+                if (isDeactivate) {
+                    const isCurrentlyActive = this.classList.contains('btn-outline-danger');
+                    if (isCurrentlyActive) {
+                        confirmMessage += '\n\nMahasiswa yang dinonaktifkan tidak dapat login ke sistem, namun data akan tetap tersimpan dan dapat diaktifkan kembali.';
+                    } else {
+                        confirmMessage += '\n\nMahasiswa akan dapat login kembali ke sistem.';
+                    }
+                }
+                
+                if (confirm(confirmMessage)) {
+                    // Show loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                    this.style.pointerEvents = 'none';
+                    
                     window.location.href = this.href;
                 }
             });
@@ -1031,6 +1101,11 @@ $stats['new_today'] = $stmt->fetch()['count'];
                 if (urlParams.get('faculty')) {
                     $('select[name="faculty"]').val(urlParams.get('faculty'));
                 }
+            });
+
+            // Enhanced visual feedback for nonactive students
+            $('.table tbody tr.table-secondary').each(function() {
+                $(this).find('.student-avatar').removeClass('bg-primary').addClass('bg-secondary');
             });
         });
 

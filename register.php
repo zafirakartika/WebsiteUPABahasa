@@ -1,5 +1,6 @@
 <?php
 require_once 'config/database.php';
+require_once 'config/recaptcha.php'; // Include reCAPTCHA config
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $no_telpon = sanitizeInput($_POST['no_telpon'] ?? ''); 
     $is_admin = isset($_POST['isAdmin']);
     $registration_code = $_POST['registrationCode'] ?? '';
+    $recaptcha_response = $_POST['g-recaptcha-response'] ?? '';
     
     // Validation
     if (empty($name)) {
@@ -48,6 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Password tidak sama';
     }
     
+    // Verify reCAPTCHA
+    if (!verifyRecaptcha($recaptcha_response)) {
+        $errors[] = 'Silakan verifikasi bahwa Anda bukan robot';
+    }
+    
     // Student-specific validation
     if (!$is_admin) {
         if (empty($nim)) {
@@ -55,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!preg_match('/^\d{10}$/', $nim)) {
             $errors[] = 'NIM harus 10 digit';
         } else {
-            // Validate NIM with SIAKAD simulation
+            // Validate NIM with SIAKAD simulation (function from database.php)
             $nim_validation = validateNimWithSiakad($nim);
             if (!$nim_validation['valid']) {
                 $errors[] = $nim_validation['message'];
@@ -134,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
                 $stmt->execute([$name, $email, $hashed_password, $role]);
             } else {
-                // Get additional data from SIAKAD simulation
+                // Get additional data from SIAKAD simulation (function from database.php)
                 $siakad_data = getSiakadData($nim);
                 
                 $stmt = $pdo->prepare("
@@ -166,75 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-// Function to validate NIM with SIAKAD
-function validateNimWithSiakad($nim) {
-    // Simulate API call delay
-    usleep(100000); // 0.1 second delay
-    
-    // Validate based on patterns
-    $valid_patterns = [
-        '23' => true, // 2022 batch
-        '22' => true, // 2022 batch
-        '21' => true, // 2021 batch
-    ];
-    
-    $year_prefix = substr($nim, 0, 2);
-    
-    if (!isset($valid_patterns[$year_prefix])) {
-        return [
-            'valid' => false,
-            'message' => 'NIM tidak terdaftar di SIAKAD UPNVJ'
-        ];
-    }
-    
-    return [
-        'valid' => true,
-        'message' => 'NIM tervalidasi dengan SIAKAD UPNVJ'
-    ];
-}
-
-// Function to get SIAKAD data (simulation)
-function getSiakadData($nim) {
-    // Simulate different programs based on NIM pattern
-    $programs = [
-        '221050' => [
-            'program' => 'Sistem Informasi', 
-            'level' => 'D3', 
-            'faculty' => 'Fakultas Ilmu Komputer'
-        ],
-        '221051' => [
-            'program' => 'Hubungan Internasional', 
-            'level' => 'S1', 
-            'faculty' => 'Fakultas Ilmu Sosial dan Ilmu Politik'
-        ],
-        '221052' => [
-            'program' => 'Manajemen', 
-            'level' => 'S1', 
-            'faculty' => 'Fakultas Ekonomi dan Bisnis'
-        ],
-        '221053' => [
-            'program' => 'Teknik Informatika', 
-            'level' => 'S1', 
-            'faculty' => 'Fakultas Teknik'
-        ],
-        '211050' => [
-            'program' => 'Sistem Informasi', 
-            'level' => 'S1', 
-            'faculty' => 'Fakultas Ilmu Komputer'
-        ],
-        '201051' => [
-            'program' => 'Sistem Informasi', 
-            'level' => 'S1', 
-            'faculty' => 'Fakultas Ilmu Komputer'
-        ],
-    ];
-    
-    $nim_prefix = substr($nim, 0, 6);
-    
-    // Default to first program if pattern not found
-    return $programs[$nim_prefix] ?? $programs['221050'];
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -246,6 +184,8 @@ function getSiakadData($nim) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
     <link href="assets/css/auth.css" rel="stylesheet">
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body class="auth-body">
     <!-- Back to Home -->
@@ -398,7 +338,7 @@ function getSiakadData($nim) {
                 </div>
 
                 <!-- Confirm Password -->
-                <div class="form-floating mb-4">
+                <div class="form-floating mb-3">
                     <input 
                         type="password" 
                         class="form-control" 
@@ -410,6 +350,11 @@ function getSiakadData($nim) {
                     <label for="confirmPassword">
                         <i class="bi bi-lock-fill me-2"></i>Konfirmasi Password
                     </label>
+                </div>
+
+                <!-- Google reCAPTCHA -->
+                <div class="mb-3 text-center">
+                    <div class="g-recaptcha" data-sitekey="<?= RECAPTCHA_SITE_KEY ?>"></div>
                 </div>
 
                 <button type="submit" class="btn btn-register text-white" id="registerBtn">
@@ -646,6 +591,13 @@ function getSiakadData($nim) {
                 isValid = false;
             }
 
+            // Validate reCAPTCHA
+            const recaptchaResponse = grecaptcha.getResponse();
+            if (!recaptchaResponse) {
+                alert('Silakan verifikasi bahwa Anda bukan robot');
+                isValid = false;
+            }
+
             // Validate NIM and Phone (for students)
             const isAdmin = document.getElementById('isAdmin').checked;
             if (!isAdmin) {
@@ -731,46 +683,5 @@ function getSiakadData($nim) {
             }, 5000);
         });
     </script>
-
-    <style>
-        .nim-validation, .phone-validation {
-            margin-top: 0.25rem;
-            font-size: 0.875rem;
-            padding: 0.25rem 0;
-        }
-
-        .nim-validation.valid, .phone-validation.valid {
-            color: #28a745;
-        }
-
-        .nim-validation.invalid, .phone-validation.invalid {
-            color: #dc3545;
-        }
-
-        .nim-validation.validating {
-            color: #007bff;
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 0.8rem;
-            height: 0.8rem;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #007bff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-    </style>
 </body>
 </html>
